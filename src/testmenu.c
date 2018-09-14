@@ -7,7 +7,6 @@ void testMenu()
 	consoleClear();
 
 	iprintf("Storage Check Test\n\n");
-	iprintf("Verify these are accurate and\nreport if they're not.\n");
 
 	consoleSelect(&bottomScreen);
 	consoleClear();

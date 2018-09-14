@@ -393,7 +393,7 @@ void install(char* fpath)
 
 	if (!f)
 	{
-		iprintf("Error: could not open file.\nPress B to exit.\n");
+		iprintf("Error: could not open file.\n\nPress B to exit.\n");
 		keyWait(KEY_A | KEY_B);
 	}
 	else
@@ -407,6 +407,22 @@ void install(char* fpath)
 			fread(&header, sizeof(tDSiHeader), 1, f);
 			fseek(f, header.ndshdr.bannerOffset, SEEK_SET);
 			fread(&banner, sizeof(tNDSBanner), 1, f);
+		}
+/*
+		//Check header size
+		if (header.ndshdr.headerSize != 0x4000)
+		{
+			iprintf("Error: no DSi header.");
+			goto error;
+		}
+*/
+		//Check high title id
+		if (header.tid_high != 0x00030004 &&
+			header.tid_high != 0x00030005 &&
+			header.tid_high != 0x00030015)
+		{
+			iprintf("This file cannot be installed.\nInvalid title ID.");
+			goto error;
 		}
 
 		//Print file size
@@ -635,7 +651,7 @@ complete:
 error:
 	fclose(f);
 
-	iprintf("\nInstallation failed.\nPress B to exit.\n");
+	iprintf("\nInstallation failed.\n\nPress B to exit.\n");
 	keyWait(KEY_A | KEY_B);
 
 	return;

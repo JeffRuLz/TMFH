@@ -435,28 +435,38 @@ void subMenu()
 
 					else
 					{
-						tNDSHeader header;
-						tNDSBanner banner;
+						int fsize = getFileSize(f);
 
-						fread(&header, sizeof(tNDSHeader), 1, f);
-						fseek(f, header.bannerOffset, SEEK_SET);
-						fread(&banner, sizeof(tNDSBanner), 1, f);
-						fclose(f);
+						if (fsize > getSDCardFree())
+							messageBox("Not enough free space on SD card.\n");
 
-						char outpath[256];
-						sprintf(outpath, "%s%.12s - %.4s.nds", ROM_PATH, header.gameTitle, header.gameCode);
-
-						char msg[512];
-						sprintf(msg, "Dump title to\n%s\n", outpath);
-
-						if (choiceBox(msg) == YES)
+						else
 						{
-							if (copyFile(fpath, outpath) == 1)
-								messageBox("Title saved.\n");
-							else
-								messageBox("Title dump failed.\n");
+							tNDSHeader header;
+							tNDSBanner banner;
+
+							fread(&header, sizeof(tNDSHeader), 1, f);
+							fseek(f, header.bannerOffset, SEEK_SET);
+							fread(&banner, sizeof(tNDSBanner), 1, f);
+							fclose(f);
+
+							char outpath[256];
+							sprintf(outpath, "%s%.12s - %.4s.nds", ROM_PATH, header.gameTitle, header.gameCode);
+
+							char msg[512];
+							sprintf(msg, "Dump title to\n%s\n", outpath);
+
+							if (choiceBox(msg) == YES)
+							{
+								if (copyFile(fpath, outpath) == 1)
+									messageBox("Title saved.\n");
+								else
+									messageBox("Title dump failed.\n");
+							}
 						}
 					}
+
+					fclose(f);
 				}
 
 				break;

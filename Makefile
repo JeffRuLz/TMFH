@@ -20,10 +20,14 @@ BUILD		:=	build
 SOURCES		:=	src
 DATA		:=	data  
 INCLUDES	:=	include
+#GAME_ICON	:=	$(CURDIR)/icon.bmp
 
 GAME_TITLE		:=	TMFH
 GAME_SUBTITLE1	:=	Title Manager for HiyaCFW
 GAME_SUBTITLE2	:=	JeffRuLz
+
+GAME_CODE		:= TMFH
+GAME_LABEL		:= TITLEMANFH
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -111,8 +115,9 @@ endif
 #---------------------------------------------------------------------------------
 $(BUILD):
 	@[ -d $@ ] || mkdir -p $@
-	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile
- 
+	@$(MAKE) --no-print-directory -C $(BUILD) -f $(CURDIR)/Makefile	
+	@echo built ... $(notdir $@)
+
 #---------------------------------------------------------------------------------
 clean:
 	@echo clean ...
@@ -126,6 +131,12 @@ else
 #---------------------------------------------------------------------------------
 $(OUTPUT).nds	: 	$(OUTPUT).elf
 $(OUTPUT).elf	:	$(OFILES)
+
+$(OUTPUT).nds: $(OUTPUT).elf
+	@ndstool -u "00030004" \
+	         -g "$(GAME_CODE)" "00" "$(GAME_LABEL)" \
+	         -c $(OUTPUT).nds -9 $(OUTPUT).elf \
+			 -b $(GAME_ICON) "$(GAME_TITLE);$(GAME_SUBTITLE1);$(GAME_SUBTITLE2)"
  
 #---------------------------------------------------------------------------------
 %.bin.o	:	%.bin
