@@ -1,15 +1,34 @@
 # Title Manager for HiyaCFW
-TMFH is a DSi homebrew app that can install and delete titles from a DSi emunand.
+A basic title manager for DSi emunand.
 
-It is only compatible with DSi systems, not DS or 3DS consoles.
+## Features
+Install titles
 
-## Usage
-Place your dsiware nds and app files in a folder on your SD card called /dsi/.
+- Install DSiWare and homebrew onto your emunand home menu.
 
-This cannot be used to install cartridge games.
+- Place nds and app files in a folder on your SD card called /dsi/.
+
+Delete titles
+
+- Ability to delete system titles and others hidden from Data Management.
+
+Dump title
+
+- Backup an installed title to a nds file.
+
+View basic title header info
+
+## Notes
+Backup your SD card! Nothing bad should happen, but this is an early release so who knows.
+
+Emunand free space is a rough estimate and not 100% accurate.
+
+This cannot be used to install cartridge games or older DS homebrew.
+
+This is only for DSi systems. Not 3DS or DS.
 
 ## Credits
-[DevkitPro](https://devkitpro.org/)
+[DevkitPro / DevkitARM / libnds](https://devkitpro.org/)
 
 [MakeTMD by Tuxality](https://github.com/Tuxality/maketmd)
 
