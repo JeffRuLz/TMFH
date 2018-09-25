@@ -1,7 +1,8 @@
 #include "main.h"
-#include "menus.h"
+#include "menu.h"
+#include <time.h>
 
-#define VERSION "0.4"
+#define VERSION "0.5"
 
 enum {
 	MAIN_MENU_INSTALL,
@@ -15,6 +16,8 @@ static int mainMenu();
 
 int main(int argc, char **argv)
 {	
+	srand(time(0)); 
+
 	videoSetMode(MODE_0_2D);
 	videoSetModeSub(MODE_0_2D);
 
@@ -23,6 +26,9 @@ int main(int argc, char **argv)
 
 	consoleInit(&topScreen,    3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true, true);
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
+
+	consoleSelect(&bottomScreen);
+	consoleClear();
 
 	if (!fatInitDefault())
 	{
@@ -64,9 +70,7 @@ int main(int argc, char **argv)
 	return 0;
 }
 
-static int cursor = 0;
-
-int mainMenu()
+static int mainMenu()
 {
 	consoleSelect(&topScreen);
 	consoleClear();
@@ -75,59 +79,30 @@ int mainMenu()
 	iprintf("\nversion %s\n", VERSION);
 	iprintf("\x1b[23;0HJeff - 2018");
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	Menu* m = (Menu*)malloc(sizeof(Menu));
+	clearMenu(m);
 
-	iprintf("\tInstall\n");
-	iprintf("\tTitles\n");
-//	iprintf("\tRestore\n");
-	iprintf("\tTest\n");
-	iprintf("\tExit");
-	
+	addMenuItem(m, "Install");
+	addMenuItem(m, "Titles");
+	addMenuItem(m, "Test");
+	addMenuItem(m, "Exit");
+
+	printMenu(m);
+
 	while (1)
 	{
 		swiWaitForVBlank();
 		scanKeys();
-		
-		//Clear cursor
-		iprintf("\x1b[%d;0H ", cursor);
-		
-		if (keysDown() & KEY_DOWN)
-		{
-			if ( (cursor += 1) > MAIN_MENU_EXIT )
-				cursor = 0;
-		}
-		
-		if (keysDown() & KEY_RIGHT)
-		{
-			repeat (10)
-			{
-				if ( (cursor += 1) > MAIN_MENU_EXIT )
-					cursor = 0;
-			}
-		}
-		
-		if (keysDown() & KEY_UP)
-		{
-			if ( (cursor -= 1) < 0 )
-				cursor = MAIN_MENU_EXIT;
-		}
-		
-		if (keysDown() & KEY_LEFT)
-		{
-			repeat (10)
-			{
-				if ( (cursor -= 1) < 0 )
-					cursor = MAIN_MENU_EXIT;
-			}
-		}
-		
-		//print cursor
-		iprintf("\x1b[%d;0H>", cursor);
-		
+
+		if (moveCursor(m) == 1)
+			printMenu(m);
+
 		if (keysDown() & KEY_A)
 			break;
 	}
-	
+
+	int cursor = m->cursor;
+	free(m);
+
 	return cursor;
 }

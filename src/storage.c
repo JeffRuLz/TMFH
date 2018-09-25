@@ -25,21 +25,26 @@ void printBytes(int bytes)
 
 void printFileInfo(const char* path)
 {
-	tDSiHeader header;
-	tNDSBanner banner;
+	if (path == NULL) return;
+
+	consoleSelect(&topScreen);
+	consoleClear();
+
+	tDSiHeader* header = (tDSiHeader*)malloc(sizeof(tDSiHeader));
+	tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
 
 	FILE* f = fopen(path, "rb");
 	
 	if (f)
 	{
-		if (fread(&header, sizeof(tDSiHeader), 1, f) != 1)
+		if (fread(header, sizeof(tDSiHeader), 1, f) != 1)
 			iprintf("Could not read dsi header.\n");
 
 		else
 		{
-			fseek(f, header.ndshdr.bannerOffset, SEEK_SET);
+			fseek(f, header->ndshdr.bannerOffset, SEEK_SET);
 
-			if (fread(&banner, sizeof(tNDSBanner), 1, f) != 1)
+			if (fread(banner, sizeof(tNDSBanner), 1, f) != 1)
 				iprintf("Could not read banner.\n");
 
 			else
@@ -51,7 +56,7 @@ void printFileInfo(const char* path)
 					
 					//Convert 2 byte characters to 1 byte
 					for (int i = 0; i < 128; i++)
-						gameTitle[i] = (char)banner.titles[1][i];				
+						gameTitle[i] = (char)banner->titles[1][i];				
 
 					iprintf("%s\n\n", gameTitle);
 				}
@@ -63,14 +68,14 @@ void printFileInfo(const char* path)
 					iprintf("\n");
 				}
 
-				iprintf("Label: %.12s\n", header.ndshdr.gameTitle);
-				iprintf("Game Code: %.4s\n", header.ndshdr.gameCode);
+				iprintf("Label: %.12s\n", header->ndshdr.gameTitle);
+				iprintf("Game Code: %.4s\n", header->ndshdr.gameCode);
 
 				//System type
 				{
 					iprintf("Unit Code: ");
 
-					switch (header.ndshdr.unitCode)
+					switch (header->ndshdr.unitCode)
 					{
 						case 0: iprintf("NDS"); break;
 						case 2: iprintf("NDS+DSi"); break;
@@ -85,19 +90,27 @@ void printFileInfo(const char* path)
 				{
 					iprintf("Program Type: ");
 
-					switch (header.ndshdr.reserved1[7])
+					switch (header->ndshdr.reserved1[7])
 					{
 						case 0x3: iprintf("Normal"); break;
 						case 0xB: iprintf("Sys"); break;
 						case 0xF: iprintf("Debug/Sys"); break;
-						default: iprintf("unknown");
+						default:  iprintf("unknown");
 					}
 
 					iprintf("\n");
 				}				
 
-				iprintf("Title ID: %08x %08x\n", (unsigned int)header.tid_high,
-												 (unsigned int)header.tid_low);			
+				//DSi data
+				if (header->tid_high == 0x00030004 ||
+					header->tid_high == 0x00030005 ||
+					header->tid_high == 0x00030015 ||
+					header->tid_high == 0x00030017 ||
+					header->tid_high == 0x00030000)
+				{
+					iprintf("Title ID: %08x %08x\n", (unsigned int)header->tid_high,
+												 	 (unsigned int)header->tid_low);			
+				}
 
 				//Print full file path
 				iprintf("\n%s\n", path);
@@ -106,6 +119,9 @@ void printFileInfo(const char* path)
 	}
 
 	fclose(f);
+
+	free(banner);
+	free(header);
 }
 
 //Progress bar

@@ -1,280 +1,10 @@
-#include "menus.h"
+#include "menu.h"
+#include "main.h"
 #include "storage.h"
+#include "titles.h"
 #include "maketmd.h"
 #include <dirent.h>
 
-static int cursor = 0;
-static int scrolly = 0;
-static int numberOfTitles = 0;
-
-static void moveCursor(int dir);
-
-static void printList();
-static void printFileInfoNum(int num);
-
-static int getNumberOfTitles();
-//static void getGameTitle(char* title, FILE* f);
-static int getFile(char* dest, int num, int fullpath);
-
-static void subMenu();
-static void install(char* fpath);
-
-void installMenu()
-{
-	cursor = 0;
-	scrolly = 0;
-	numberOfTitles = getNumberOfTitles();
-
-	consoleSelect(&topScreen);
-	consoleClear();
-
-	consoleSelect(&bottomScreen);
-	consoleClear();
-
-	//No titles error
-	if (numberOfTitles == 0)
-	{
-		iprintf("No files found.\n");
-		iprintf("Place .nds(dsi) or .app files in %s\n", ROM_PATH);
-		iprintf("\nBack - B\n");
-
-		keyWait(KEY_B | KEY_A | KEY_START);
-		return;
-	}
-
-	//Print data
-	consoleSelect(&topScreen);
-	printFileInfoNum(cursor);
-
-	consoleSelect(&bottomScreen);
-	printList();	
-
-	while (1)
-	{
-		swiWaitForVBlank();
-		scanKeys();
-
-		int thisCursor = cursor;
-		int thisscrolly = scrolly;
-
-		//Clear cursor
-		consoleSelect(&bottomScreen);
-		iprintf("\x1b[%d;0H ", cursor - scrolly);
-
-		//Move cursor
-		if (keysDown() & KEY_DOWN)
-			moveCursor(1);
-
-		if (keysDown() & KEY_UP)
-			moveCursor(-1);
-
-		if (keysDown() & KEY_RIGHT)
-		{
-			repeat (10)
-				moveCursor(1);
-		}		
-
-		if (keysDown() & KEY_LEFT)
-		{
-			repeat (10)
-				moveCursor(-1);
-		}		
-
-		//Refresh screens
-		if (thisCursor != cursor)
-		{
-			consoleSelect(&topScreen);
-			consoleClear();
-
-			printFileInfoNum(cursor);			
-		}
-
-		if (thisscrolly != scrolly)
-		{
-			consoleSelect(&bottomScreen);
-			consoleClear();
-
-			printList();
-		}
-
-		//Print cursor
-		consoleSelect(&bottomScreen);
-		iprintf("\x1b[%d;0H>", cursor - scrolly);
-
-		//
-		if (keysDown() & KEY_B)
-			break;
-		else if (keysDown() & KEY_A)
-		{
-			subMenu();
-
-			consoleSelect(&topScreen);
-			printFileInfoNum(cursor);
-
-			consoleSelect(&bottomScreen);
-			printList();
-		}
-	}
-}
-
-void moveCursor(int dir)
-{
-	cursor += sign(dir);
-
-	if (cursor < 0)
-		cursor = 0;
-
-	if (cursor >= numberOfTitles - 1)
-		cursor = numberOfTitles - 1;
-
-	if (cursor - scrolly >= 23)
-		scrolly += 1;
-
-	if (cursor - scrolly < 0)
-		scrolly -= 1;
-}
-
-void printList()
-{
-	consoleClear();
-	
-	for (int i = scrolly; i < scrolly + 23; i++)
-	{
-		char str[256];
-		if (getFile(str, i, 0) == 1)
-			iprintf(" %.30s\n", str);
-	}
-
-	//Scroll arrows
-	if (scrolly > 0)
-		iprintf("\x1b[0;31H^");
-
-	if (scrolly < numberOfTitles - 23)
-		iprintf("\x1b[22;31Hv");
-}
-
-void printFileInfoNum(int num)
-{
-	consoleClear();
-
-	char path[256];
-	if (getFile(path, num, 1) == 1)
-		printFileInfo(path);
-}
-
-int getNumberOfTitles()
-{
-	DIR* dir;
-	struct dirent* ent;
-	int count = 0;
-
-	dir = opendir(ROM_PATH);
-
-	if (dir)
-	{
-		while ( (ent = readdir(dir)) != NULL )
-		{
-			if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
-				continue;
-
-			if (ent->d_type != DT_DIR)
-			{
-				if (strstr(ent->d_name, ".nds") != NULL || strstr(ent->d_name, ".app") != NULL)
-					count++;
-			}
-		}
-	}
-
-	closedir(dir);
-	return count;
-}
-/*
-void getGameTitle(char* title, FILE* f)
-{
-	tDSiHeader header;
-	tNDSBanner banner;
-
-	fseek(f, 0, SEEK_SET);
-	fread(&header, sizeof(tDSiHeader), 1, f);
-	fseek(f, header.ndshdr.bannerOffset, SEEK_SET);
-	fread(&banner, sizeof(tNDSBanner), 1, f);
-
-//	iprintf("\t%s\n", header.ndshdr.gameTitle);
-//	iprintf("\t%s\n", (char*)banner.titles[0]);
-
-	int line = 0;
-	for (int i = 0; i < 64; i++)
-	{
-		char c = banner.titles[0][i];
-
-		if (c == '\n')
-		{
-			if (line == 0)
-			{
-				title[i] = ' ';
-				line = 1;
-			}
-			else
-			{
-				title[i] = '\0';
-				break;
-			}
-		}
-		else
-			title[i] = c;
-	}
-
-	title[64] = '\0';
-}
-*/
-
-int getFile(char* dest, int num, int fullpath)
-{
-	DIR* dir;
-	struct dirent* ent;
-	int result = 0;
-
-	dir = opendir(ROM_PATH);
-
-	if (dir)
-	{
-		int count = 0;
-
-		while ( (ent = readdir(dir)) != NULL )
-		{
-			if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
-				continue;
-
-			if (ent->d_type != DT_DIR)
-			{
-				if(strstr(ent->d_name, ".nds") != NULL || strstr(ent->d_name, ".app") != NULL)
-				{
-					if (count < num)
-					{
-						count++;
-						continue;
-					}
-					else
-					{
-						if (fullpath == 0)
-							sprintf(dest, "%s", ent->d_name);
-						else
-							sprintf(dest, "%s%s", ROM_PATH, ent->d_name);
-
-						result = 1;
-						break;
-					}
-				}
-			}
-		}
-	}
-
-	closedir(dir);
-	return result;
-}
-
-//
-static int subCursor = 0;
 
 enum {
 	INSTALL_MENU_INSTALL,
@@ -282,154 +12,305 @@ enum {
 	INSTALL_MENU_BACK
 };
 
-void subMenu()
+static void generateList(Menu* m);
+static void printItem(Menu* m);
+
+static int subMenu();
+static void install(Menu* m);
+static void delete(Menu* m);
+
+
+void installMenu()
 {
-	bool printMenu = true;
-	subCursor = 0;	
+	Menu* m = (Menu*)malloc(sizeof(Menu));
+	
+	clearMenu(m);
+	generateList(m);
+
+	//No files found
+	if (getNumberOfMenuItems(m) <= 0)
+	{
+		consoleSelect(&bottomScreen);
+		consoleClear();
+
+		iprintf("No files found.\n");
+		iprintf("Place .nds, .app, or .dsi files in %s\n", ROM_PATH);
+		iprintf("\nBack - B\n");
+
+		keyWait(KEY_B | KEY_A | KEY_START);
+		return;
+	}
+
+	//Print data
+	printItem(m);
+	printMenu(m);
 
 	while (1)
 	{
 		swiWaitForVBlank();
 		scanKeys();
 
-		if (printMenu == true)
+		if (moveCursor(m))
 		{
-			printMenu = false;
+			printItem(m);
+			printMenu(m);
+		}		
 
-			consoleSelect(&bottomScreen);
-			consoleClear();
+		if (keysDown() & KEY_B)
+			break;
 
-			iprintf("\tInstall\n");
-			iprintf("\tDelete\n");
-			iprintf("\tBack - B\n");
+		//Selection
+		else if (keysDown() & KEY_A)
+		{			
+			switch (subMenu())
+			{
+				case INSTALL_MENU_INSTALL:
+					install(m);
+					break;
+
+				case INSTALL_MENU_DELETE:
+					delete(m);
+					break;
+
+				case INSTALL_MENU_BACK:					
+					break;
+			}
+
+			printMenu(m);
 		}
+	}
 
-		//Clear cursor
-		iprintf("\x1b[%d;0H ", subCursor);
+	free(m);
+}
 
-		//Move cursor
-		if (keysDown() & KEY_DOWN)
+//mode = 0: add items to menu
+//mode = 1: return full path of item num to out
+static bool _walkList(Menu* m, int mode, char* out)
+{
+	//Skip if no menu
+	if (m == NULL)
+		return false;
+
+	//Reset menu
+	if (mode == 0)
+		clearMenu(m);
+
+	//
+	DIR* dir;
+	struct dirent* ent;
+	bool result = false;
+
+	dir = opendir(ROM_PATH);
+
+	if (dir)
+	{
+		int count = 0;
+
+		//Scan /dsi/
+		while ( (ent = readdir(dir)) != NULL )
 		{
-			if (subCursor < INSTALL_MENU_BACK)
-				subCursor++;
+			if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
+				continue;
+
+			if (ent->d_type != DT_DIR)
+			{
+				if (strstr(ent->d_name, ".nds") != NULL || strstr(ent->d_name, ".app") != NULL || strstr(ent->d_name, ".dsi") != NULL ||
+					strstr(ent->d_name, ".NDS") != NULL || strstr(ent->d_name, ".APP") != NULL || strstr(ent->d_name, ".DSI") != NULL)
+				{
+					//Generate list
+					if (mode == 0)
+					{
+						char name[128];
+						sprintf(name, "%s", ent->d_name);
+
+						addMenuItem(m, name);
+					}
+
+					//Get item file name
+					else if (mode == 1)
+					{
+						if (count < m->cursor)
+							count++;
+						else
+						{
+							sprintf(out, "%s%s", ROM_PATH, ent->d_name);
+
+							result = true;
+							goto endloop;
+						}						
+					}
+				}
+			}
 		}
+	}
 
-		if (keysDown() & KEY_UP)
-		{
-			if (subCursor > 0)
-				subCursor--;
-		}
+endloop:
+	closedir(dir);
+	return result;
+}
 
-		//Reprint cursor
-		iprintf("\x1b[%d;0H>", subCursor);
+void generateList(Menu* m)
+{
+	if (m == NULL) return;
 
-		//
+	consoleSelect(&bottomScreen);
+	consoleClear();
+
+	iprintf("Gathering files...\n");
+
+	_walkList(m, 0, NULL);
+}
+
+static void printItem(Menu* m)
+{
+	if (m == NULL) return;
+
+	char path[256];
+	if (_walkList(m, 1, path) == true)
+		printFileInfo(path);
+}
+
+//
+int subMenu()
+{
+	int result = -1;
+
+	Menu* m = (Menu*)malloc(sizeof(Menu));
+	clearMenu(m);
+
+	addMenuItem(m, "Install");
+	addMenuItem(m, "Delete");
+	addMenuItem(m, "Back - B");
+
+	printMenu(m);
+
+	while (1)
+	{
+		swiWaitForVBlank();
+		scanKeys();
+
+		if (moveCursor(m))
+			printMenu(m);
+
 		if (keysDown() & KEY_B)
 			break;
 
 		else if (keysDown() & KEY_A)
 		{
-			if (subCursor == INSTALL_MENU_INSTALL)
-			{
-				char fpath[256];
-				getFile(fpath, cursor, 1);
-
-				char msg[512+1];
-				msg[512] = '\0';
-				sprintf(msg, "Are you sure you want to install\n%s\n", fpath);
-
-				if (choiceBox(msg) == YES)
-					install(fpath);
-				
-				break;
-			}
-
-			else if (subCursor == INSTALL_MENU_DELETE)
-			{
-				char fpath[256];
-				getFile(fpath, cursor, 1);
-
-				char msg[512+1];
-				msg[512] = '\0';
-				sprintf(msg, "Are you sure you want to delete\n%s\n", fpath);
-
-				if (choiceBox(msg) == YES)
-				{
-					if (remove(fpath) != 0)
-						messageBox("File could not be deleted.");
-
-					else
-						messageBox("File deleted.");
-
-					//Reset
-					cursor = 0;
-					scrolly = 0;
-					numberOfTitles = getNumberOfTitles();
-					
-					break;
-				}				
-				else
-				{
-					printMenu = true;
-				}
-			}
-
-			else if (subCursor == INSTALL_MENU_BACK)
-			{
-				break;
-			}
+			result = m->cursor;
+			break;
 		}
-	}	
+	}
+
+	free(m);
+
+	return result;
 }
 
-void install(char* fpath)
+void install(Menu* m)
 {
+	char fpath[256];	
+
+	//Confirmation message
+	{
+		int choice = NO;	
+
+		if (_walkList(m, 1, fpath) == true)
+		{
+			char msg[512];
+			sprintf(msg, "Are you sure you want to install\n%s\n", fpath);
+			choice = choiceBox(msg);
+		}
+
+		if (choice == NO)
+			return;
+	}
+
+	//Start installation
 	consoleSelect(&bottomScreen);
 	consoleClear();
 
 	iprintf("Installing %s\n", fpath); swiWaitForVBlank();
 	
+	tDSiHeader* header = (tDSiHeader*)malloc(sizeof(tDSiHeader));
+	tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
+	
 	FILE* f = fopen(fpath, "rb");
 
 	if (!f)
 	{
-		iprintf("Error: could not open file.\n\nPress B to exit.\n");
-		keyWait(KEY_A | KEY_B);
+		iprintf("Error: could not open file.\n");
+		goto error;
 	}
 	else
 	{
-		//Load header		
-		tDSiHeader header;
-		tNDSBanner banner;	
+		bool patchHeader = false;
 
+		//Read header and banner
 		{
 			fseek(f, 0, SEEK_SET);
-			fread(&header, sizeof(tDSiHeader), 1, f);
-			fseek(f, header.ndshdr.bannerOffset, SEEK_SET);
-			fread(&banner, sizeof(tNDSBanner), 1, f);
+			fread(header, sizeof(tDSiHeader), 1, f);
+
+			fseek(f, header->ndshdr.bannerOffset, SEEK_SET);
+			fread(banner, sizeof(tNDSBanner), 1, f);
 		}
-/*
-		//Check header size
-		if (header.ndshdr.headerSize != 0x4000)
+
+		//Patch homebrew roms if gameCode is #### or null
+		if ((strcmp(header->ndshdr.gameCode, "####") == 0 && header->tid_low == 0x23232323) ||
+			(!*header->ndshdr.gameCode && header->tid_low == 0))
 		{
-			iprintf("Error: no DSi header.");
-			goto error;
+			iprintf("Patching header...");
+
+			patchHeader = true;
+
+			//Set as standard app
+			header->tid_high = 0x00030004;
+
+			//Give it a random game code
+			do
+			{				
+				//First letter shouldn't be A
+				do
+				{
+					for (int i = 0; i < 4; i++)
+						header->ndshdr.gameCode[i] = 0x41 + (rand() % (26));
+				}
+				while (header->ndshdr.gameCode[0] == 'A');
+
+				//Correct title id
+				header->tid_low = gameCodeToTitleID(header->ndshdr.gameCode);
+			}
+			while (titleIsUsed(header->tid_low, header->tid_high) == true);
+
+			//Fix header checksum
+			header->ndshdr.headerCRC16 = swiCRC16(0xFFFF, header, 0x15E);
+			
+			//Fix RSA signature
+			u8 buffer[20];
+			swiSHA1Calc(&buffer, header, 0xE00);
+			memcpy(&(header->rsa_signature[0x6C]), buffer, 20);
+
+			iprintf("Done\n");
 		}
-*/
-		//Check high title id
-		if (header.tid_high != 0x00030004 &&
-			header.tid_high != 0x00030005 &&
-			header.tid_high != 0x00030015)
+
+		//Must be DSi rom
+		//High title id must be one of three
 		{
-			iprintf("This file cannot be installed.\nInvalid title ID.");
-			goto error;
+			if (header->tid_high != 0x00030004 &&
+				header->tid_high != 0x00030005 &&
+				header->tid_high != 0x00030015 &&
+				header->tid_high != 0x00030017)
+			{
+				iprintf("Error: This is not a DSi rom.\n");
+				goto error;	
+			}
 		}
 
 		//Print file size
-		int fileSize = -1;
+		int fileSize = -1;	
 
 		{
-			iprintf("File Size: "); swiWaitForVBlank();
+			iprintf("File Size: ");
 
 			fileSize = getFileSize(f);
 			
@@ -437,12 +318,12 @@ void install(char* fpath)
 			printf("\n");
 		}
 
-		//Do not want file opened anymore
+		//Do not need file opened anymore
 		fclose(f);
 
 		//SD card check
 		{
-			iprintf("Enough room on SD card?..."); swiWaitForVBlank();
+			iprintf("Enough room on SD card?...");
 
 			if (getSDCardFree() < fileSize)
 			{
@@ -455,28 +336,28 @@ void install(char* fpath)
 
 		//DSi storage check
 		{
-			iprintf("Enough room on DSi?..."); swiWaitForVBlank();
+			iprintf("Enough room on DSi?...");
 
 			if (getDsiFree() < fileSize)
 			{
-				iprintf("No\n"); swiWaitForVBlank();
+				iprintf("No\n");
 				goto error;				
 			}
 			
-			iprintf("Yes\n"); swiWaitForVBlank();
+			iprintf("Yes\n");
 		}
 
 		//Menu slot check
 		{
-			iprintf("Open DSi menu slot?..."); swiWaitForVBlank();
+			iprintf("Open DSi menu slot?...");
 			
 			if (getMenuSlotsFree() <= 0)
 			{
-				iprintf("No\n"); swiWaitForVBlank();
+				iprintf("No\n");
 				goto error;	
 			}
 
-			iprintf("Yes\n"); swiWaitForVBlank();
+			iprintf("Yes\n");
 		}
 
 		//Create title directory
@@ -484,10 +365,8 @@ void install(char* fpath)
 		char dirPath[256];
 
 		{
-			sprintf(titleID, "%08x", (unsigned int)header.tid_low);			
-			sprintf(dirPath, "/title/%08x/%s", (unsigned int)header.tid_high, titleID);
-
-			//iprintf("Creating dir\n%s\n", dirPath); swiWaitForVBlank();
+			sprintf(titleID, "%08x", (unsigned int)header->tid_low);			
+			sprintf(dirPath, "/title/%08x/%s", (unsigned int)header->tid_high, titleID);
 		}
 
 		//Check if title is already installed
@@ -523,24 +402,46 @@ void install(char* fpath)
 			char contentPath[256];
 			sprintf(contentPath, "%s/content", dirPath);
 
-			//iprintf("Creating dir\n%s\n", contentPath); swiWaitForVBlank();
 			mkdir(contentPath, 0777);
 
 			//Create 0000000.app
-			//Does 00000000 always work?
 			{
 				char appPath[256];
 				sprintf(appPath, "%s/00000000.app", contentPath);
 
-				iprintf("Creating 00000000.app..."); swiWaitForVBlank();
-				
-				if (copyFile(fpath, appPath) == 0)
+				//Copy nds file to app
 				{
-					iprintf("Failed\n");
-					goto error;
+					iprintf("Creating 00000000.app...");
+					
+					if (copyFile(fpath, appPath) == 0)
+					{
+						iprintf("Failed\n");
+						goto error;
+					}
+
+					iprintf("Done\n");
 				}
 
-				iprintf("Done\n");
+				//Write new patched header
+				if (patchHeader == true)
+				{
+					iprintf("Writing header...");
+					
+					FILE* f = fopen(appPath, "r+");
+
+					if (!f)
+						iprintf("Failed\n");
+
+					else
+					{
+						fseek(f, 0, SEEK_SET);
+						fwrite(header, sizeof(tDSiHeader), 1, f);
+
+						iprintf("Done\n");
+					}
+
+					fclose(f);
+				}				
 
 				//Make TMD
 				{
@@ -558,101 +459,140 @@ void install(char* fpath)
 			char dataPath[256];
 			sprintf(dataPath, "%s/data", dirPath);
 
-			//iprintf("Creating dir\n%s\n", dataPath); swiWaitForVBlank();
 			mkdir(dataPath, 0777);
 
 			//If needed, create public.sav
-			if (header.public_sav_size > 0)
+			if (header->public_sav_size > 0)
 			{
 				char publicPath[512];
 				sprintf(publicPath, "%s/public.sav", dataPath);
 
-				iprintf("Creating public.sav..."); swiWaitForVBlank();
-
-				FILE* file = fopen(publicPath, "wb");
-
-				if (!file)
-					iprintf("Failed\n");
-
-				else
 				{
-					char num = 0;
+					iprintf("Creating public.sav...");
 
-					repeat (header.public_sav_size)
-						fwrite(&num, 1, 1, f);
+					FILE* file = fopen(publicPath, "wb");
 
-					iprintf("Done\n");
+					if (!file)
+						iprintf("Failed\n");
+
+					else
+					{
+						char num = 0;
+
+						repeat (header->public_sav_size)
+							fwrite(&num, 1, 1, f);
+
+						iprintf("Done\n");
+					}
+
+					fclose(file);
 				}
-
-				fclose(file);		
 			}
 
 			//If needed, create private.sav
-			if (header.private_sav_size > 0)
+			if (header->private_sav_size > 0)
 			{
 				char privatePath[512];
 				sprintf(privatePath, "%s/private.sav", dataPath);
 
-				iprintf("Creating private.sav..."); swiWaitForVBlank();
-
-				FILE* file = fopen(privatePath, "wb");
-
-				if (!file)
-					iprintf("Failed\n");
-
-				else
 				{
-					char num = 0;
+					iprintf("Creating private.sav...");
 
-					repeat (header.private_sav_size)
-						fwrite(&num, 1, 1, f);
+					FILE* file = fopen(privatePath, "wb");
 
-					iprintf("Done\n");
+					if (!file)
+						iprintf("Failed\n");
+
+					else
+					{
+						char num = 0;
+
+						repeat (header->private_sav_size)
+							fwrite(&num, 1, 1, f);
+
+						iprintf("Done\n");
+					}
+
+					fclose(file);
 				}
-
-				fclose(file);	
 			}
 
 			//If needed, create banner.sav
-			if (header.appflags & 0x4)
+			if (header->appflags & 0x4)
 			{
 				char bannerPath[512];
 				sprintf(bannerPath, "%s/banner.sav", dataPath);
 
-				iprintf("Creating banner.sav..."); swiWaitForVBlank();
-
-				FILE* file = fopen(bannerPath, "wb");
-
-				if (!file)
-					iprintf("Failed\n");
-
-				else
 				{
-					char num = 0;
+					iprintf("Creating banner.sav...");
 
-					repeat (1024*16) //Is banner.sav always 16kb?
-						fwrite(&num, 1, 1, f); 
+					FILE* file = fopen(bannerPath, "wb");
 
-					iprintf("Done\n");
+					if (!file)
+						iprintf("Failed\n");
+
+					else
+					{
+						char num = 0;
+
+						repeat (0x4000)
+							fwrite(&num, 1, 1, f); 
+
+						iprintf("Done\n");
+					}
+
+					fclose(file);
 				}
-
-				fclose(file);	
 			}
-		}
+		}		
 
+		//
 		iprintf("\nInstallation complete.\nPress B to exit.\n");
-		keyWait(KEY_A | KEY_B);
+		keyWait(KEY_A | KEY_B);		
 	}
 
-complete:
-	fclose(f);
-	return;
+	goto complete;
 
 error:
-	fclose(f);
-
 	iprintf("\nInstallation failed.\n\nPress B to exit.\n");
 	keyWait(KEY_A | KEY_B);
 
+complete:
+	free(banner);
+	free(header);
+
+	fclose(f);
 	return;
+}
+
+static void delete(Menu* m)
+{
+	char path[256];
+	int choice = NO;
+
+	if (_walkList(m, 1, path) == true)
+	{
+		{
+			char msg[512];
+			sprintf(msg, "Are you sure you want to delete\n%s\n", path);
+			choice = choiceBox(msg);
+		}
+
+		if (choice == YES)
+		{
+			if (remove(path) != 0)
+			{
+				messageBox("File could not be deleted.");
+			}
+			else
+			{
+				messageBox("File deleted.");
+				
+				generateList(m);
+				printItem(m);
+			}
+		}
+	}
+
+	printMenu(m);
 }

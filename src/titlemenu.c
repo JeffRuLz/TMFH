@@ -1,43 +1,43 @@
-#include "menus.h"
+#include "menu.h"
+#include "main.h"
 #include "storage.h"
 #include <dirent.h>
 
-#define NUM_OF_DIRECTORIES 3
-static const char* directories[] = {
-	"00030004",
-	"00030005",
-	"00030015"
+static void generateList(Menu* m);
+static void printItem(Menu* m);
+
+static int subMenu();
+static void dump(Menu* m);
+static void delete(Menu* m);
+//static void backupData(Menu* m);
+//static void restoreData(Menu* m);
+
+enum {
+//	TITLE_MENU_BACKUP,
+	TITLE_MENU_DUMP,
+//	TITLE_MENU_BACKUP_DATA,
+//	TITLE_MENU_RESTORE_DATA,
+	TITLE_MENU_DELETE,
+	TITLE_MENU_BACK
 };
-
-static int cursor = 0;
-static int scrolly = 0;
-static int numberOfTitles = 0;
-
-static void moveCursor(int dir);
-
-static void printList();
-static void printTitleInfo(int num);
-
-static int getNumberOfTitles();
-static int getTitle(int num, char* title, char* path);
-
-static void subMenu();
 
 void titleMenu()
 {
-	cursor = 0;
-	scrolly = 0;
-	numberOfTitles = getNumberOfTitles();
+	Menu* m = (Menu*)malloc(sizeof(Menu));
 
 	consoleSelect(&topScreen);
-	consoleClear();
+	consoleClear();	
 
 	consoleSelect(&bottomScreen);
 	consoleClear();
 
+	generateList(m);
+
 	//No titles error
-	if (numberOfTitles <= 0)
+	if (getNumberOfMenuItems(m) <= 0)
 	{
+		consoleClear();
+
 		iprintf("No titles found.\n");
 		iprintf("Back - B\n");
 
@@ -46,188 +46,70 @@ void titleMenu()
 	}
 
 	//Print data
-	consoleSelect(&topScreen);
-	printTitleInfo(cursor);
-
-	consoleSelect(&bottomScreen);
-	printList();
+	printItem(m);
+	printMenu(m);
 
 	while (1)
 	{
 		swiWaitForVBlank();
 		scanKeys();
 
-		int thisScrolly = scrolly;
-		int thisCursor = cursor;
-
-		//Clear cursor
-		consoleSelect(&bottomScreen);
-		iprintf("\x1b[%d;0H ", cursor - scrolly);
-
-		//Move cursor
-		if (keysDown() & KEY_DOWN)
-			moveCursor(1);
-
-		if (keysDown() & KEY_UP)
-			moveCursor(-1);
-
-		if (keysDown() & KEY_RIGHT)
+		if (moveCursor(m))
 		{
-			repeat (10)
-				moveCursor(1);
+			printItem(m);
+			printMenu(m);
 		}
 
-		if (keysDown() & KEY_LEFT)
-		{
-			repeat (10)
-				moveCursor(-1);
-		}
-
-		//Re-print list
-		if (thisCursor != cursor)
-		{
-			consoleSelect(&topScreen);
-			printTitleInfo(cursor);
-		}
-
-		if (thisScrolly != scrolly)
-		{
-			consoleSelect(&bottomScreen);
-			printList();
-		}		
-
-		//Print cursor
-		consoleSelect(&bottomScreen);
-		iprintf("\x1b[%d;0H>", cursor - scrolly);
-
-		//
 		if (keysDown() & KEY_B)
 			break;
+
 		else if (keysDown() & KEY_A)
 		{
-			subMenu();
-			
-			consoleSelect(&topScreen);
-			printTitleInfo(cursor);
-
-			consoleSelect(&bottomScreen);
-			printList();
-		}
-	}
-}
-
-void moveCursor(int dir)
-{
-	cursor += sign(dir);
-
-	if (cursor < 0)
-		cursor = 0;
-
-	if (cursor >= numberOfTitles - 1)
-		cursor = numberOfTitles - 1;
-
-	if (cursor - scrolly >= 23)
-		scrolly += 1;
-
-	if (cursor - scrolly < 0)
-		scrolly -= 1;
-}
-
-void printList()
-{
-	consoleClear();
-
-	for (int i = scrolly; i < scrolly + 23; i++)
-	{
-		char title[256];
-		if (getTitle(i, title, NULL) == 1)
-			iprintf(" %.30s\n", title);
-	}
-
-	//Scroll arrows
-	if (scrolly > 0)
-		iprintf("\x1b[0;31H^");
-
-	if (scrolly < numberOfTitles - 23)
-		iprintf("\x1b[22;31Hv");
-}
-
-void printTitleInfo(int num)
-{
-	consoleClear();
-
-	char path[256];
-	if (getTitle(num, NULL, path) == 1)
-		printFileInfo(path);
-}
-
-int getNumberOfTitles()
-{
-	int count = 0;
-
-	//Scan choice title directories
-	for (int i = 0; i < NUM_OF_DIRECTORIES; i++)
-	{
-		DIR* dir;
-		struct dirent* ent;
-
-		char dirPath[256];
-		sprintf(dirPath, "/title/%s", directories[i]);
-
-		dir = opendir(dirPath);
-
-		if (dir)
-		{
-			while ( (ent = readdir(dir)) != NULL )
+			switch (subMenu())
 			{
-				if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
-					continue;
+				case TITLE_MENU_DUMP:
+					dump(m);
+					break;
 
-				if (ent->d_type == DT_DIR)
-				{
-					//Search for an .app file
-					char contentPath[384];
-					sprintf(contentPath, "%s/%s/content", dirPath, ent->d_name);
-
-					DIR* subdir;
-					struct dirent* subent;
-
-					subdir = opendir(contentPath);
-
-					if (subdir)
-					{
-						while ( (subent = readdir(subdir)) != NULL )
-						{
-							if (strcmp(".", subent->d_name) == 0 || strcmp("..", subent->d_name) == 0)
-								continue;
-
-							//Found a title
-							if (strstr(subent->d_name, ".app") != NULL)
-								count++;
-						}
-					}
-
-					closedir(subdir);
-				}
+				case TITLE_MENU_DELETE:
+					delete(m);					
+					break;
 			}
+			
+			printMenu(m);
 		}
-
-		closedir(dir);
 	}
 
-	return count;
+	free(m);
 }
 
-int getTitle(int num, char* title, char* path)
+#define NUM_OF_DIRECTORIES 3
+static const char* directories[] = {
+	"00030004",
+	"00030005",
+	"00030015"
+};
+
+//mode = 0: add items to menu
+//mode = 1: return full path of menu item
+static bool _walkList(Menu* m, int mode, char* out)
 {
-	int result = 0;
+	//Skip if no menu
+	if (m == NULL)
+		return false;
+
+	//Reset menu
+	if (mode == 0)
+		clearMenu(m);
+
+	bool result = false;
 	int count = 0;
 
 	//Scan choice title directories
-	for (int i = 0; i < NUM_OF_DIRECTORIES && result == 0; i++)
+	for (int i = 0; i < NUM_OF_DIRECTORIES && result == false; i++)
 	{
 		DIR* dir;
-		struct dirent* ent;
+		struct dirent* ent;		
 
 		char dirPath[256];
 		sprintf(dirPath, "/title/%s", directories[i]);
@@ -236,7 +118,7 @@ int getTitle(int num, char* title, char* path)
 
 		if (dir)
 		{
-			while ( (ent = readdir(dir)) != NULL && result == 0)
+			while ( (ent = readdir(dir)) != NULL && result == false)
 			{
 				if (strcmp(".", ent->d_name) == 0 || strcmp("..", ent->d_name) == 0)
 					continue;
@@ -254,7 +136,7 @@ int getTitle(int num, char* title, char* path)
 
 					if (subdir)
 					{
-						while ( (subent = readdir(subdir)) != NULL && result == 0)
+						while ( (subent = readdir(subdir)) != NULL && result == false)
 						{
 							if (strcmp(".", subent->d_name) == 0 || strcmp("..", subent->d_name) == 0)
 								continue;
@@ -263,61 +145,57 @@ int getTitle(int num, char* title, char* path)
 							{								
 								if (strstr(subent->d_name, ".app") != NULL)
 								{
-									if (count < num)
-										count++;
+									//Found requested title
+									char path[384];
+									sprintf(path, "%s/%s", contentPath, subent->d_name);
 
-									else
+									//Generate list
+									if (mode == 0)
 									{
-										//Found requested title
-										char filepath[384];
-										sprintf(filepath, "%s/%s", contentPath, subent->d_name);
+										FILE* f = fopen(path, "rb");
 
-										//Output title
-										if (title != NULL)
+										if (f)
 										{
-											FILE* f = fopen(filepath, "rb");
+											tNDSHeader* header = (tNDSHeader*)malloc(sizeof(tNDSHeader));
+											tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
 
-											if (!f)
+											fread(header, sizeof(tNDSHeader), 1, f);
+											fseek(f, header->bannerOffset, SEEK_SET);
+											fread(banner, sizeof(tNDSBanner), 1, f);
+
+											char tstr[128+1];
+											tstr[128] = '\0';
+
+											for (int i = 0; i < 128; i++)
 											{
-												sprintf(title, " ");
-											}
-											else
-											{
-												tNDSHeader header;
-												tNDSBanner banner;
+												char c = banner->titles[1][i];
+												
+												//Replace new line with space
+												if (c == '\n')
+													c = ' ';
 
-												fread(&header, sizeof(tNDSHeader), 1, f);
-												fseek(f, header.bannerOffset, SEEK_SET);
-												fread(&banner, sizeof(tNDSBanner), 1, f);
-
-												char tstr[128+1];
-												tstr[128] = '\0';
-
-												for (int i = 0; i < 128; i++)
-												{
-													char c = banner.titles[1][i];
-													
-													if (c == '\n')
-														c = ' ';
-
-													tstr[i] = c;
-												}
-
-												sprintf(title, "%s", tstr);
+												tstr[i] = c;
 											}
 
-											fclose(f);
+											free(banner);
+											free(header);
+
+											addMenuItem(m, tstr);
 										}
 
-										//Output path
-										if (path != NULL)
+										fclose(f);
+									}
+
+									//Get item file name
+									else if (mode == 1)
+									{
+										if (count < m->cursor)
+											count++;
+										else
 										{
-											sprintf(path, "%s", filepath);
-										}
-
-										//Exit this mess
-										result = 1;
-										break;
+											sprintf(out, "%s", path);
+											result = true;
+										}	
 									}
 								}
 							}
@@ -335,173 +213,228 @@ int getTitle(int num, char* title, char* path)
 	return result;
 }
 
-//
-static int subCursor = 0;
-
-enum {
-//	TITLE_MENU_BACKUP,
-	TITLE_MENU_DUMP,
-	TITLE_MENU_DELETE,
-	TITLE_MENU_BACK
-};
-
-void subMenu()
+void generateList(Menu* m)
 {
-	subCursor = 0;
-	
+	if (m == NULL) return;
+
 	consoleSelect(&bottomScreen);
 	consoleClear();
 
+	iprintf("Gathering files...\n"); swiWaitForVBlank();
+
+	clearMenu(m);
+	_walkList(m, 0, NULL);	
+}
+
+static void printItem(Menu* m)
+{
+	if (m == NULL) return;
+
+	char path[256];
+	if (_walkList(m, 1, path) == true)
+		printFileInfo(path);
+}
+
+//
+int subMenu()
+{
+	int result = -1;
+
+	Menu* m = (Menu*)malloc(sizeof(Menu));
+	clearMenu(m);
+
 //	iprintf("\tBackup\n");
-	iprintf("\tDump\n");
-	iprintf("\tDelete\n");
-	iprintf("\tBack\n");
+	addMenuItem(m, "Dump");
+//	addMenuItem(m, "Backup Saved Data");
+//	addMenuItem(m, "Restore Saved Data");
+	addMenuItem(m, "Delete");
+	addMenuItem(m, "Back");
+
+	printMenu(m);
 
 	while (1)
 	{
 		swiWaitForVBlank();
 		scanKeys();
 
-		//Clear cursor
-		iprintf("\x1b[%d;0H ", subCursor);
+		if (moveCursor(m))
+			printMenu(m);
 
-		//Move cursor
-		if (keysDown() & KEY_DOWN)
-		{
-			if (subCursor < TITLE_MENU_BACK)
-				subCursor += 1;
-		}
-
-		if (keysDown() & KEY_UP)
-		{
-			if (subCursor > 0)
-				subCursor -= 1;
-		}
-
-		//Print cursor
-		iprintf("\x1b[%d;0H>", subCursor);
-
-		if (keysDown() & KEY_A)
-		{
-			char title[256];
-			char path[256];
-			getTitle(cursor, title, path);
-
-			//Only get first line of title
-			for (int i = 0; i < 256; i++)
-			{
-				if (title[i] == '\n')
-				{
-					title[i] = '\0';
-					break;
-				}				
-			}
-
-/*			//
-			if (subCursor == TITLE_MENU_BACKUP)
-			{
-				char dir[256];
-				sprintf(dir, "%.24s", path);
-
-				char msg[512];
-				sprintf(msg, "Are you sure you want to backup\n%s", dir);
-
-				if (choiceBox(msg) == YES)
-				{
-					if (getDirSize(dir) > getSDCardFree())
-						messageBox("Error, not enough space on SD card.\nTitle backup failed.");
-
-					else
-					{
-						if (copyDir(dir, BACKUP_PATH) == 1)
-							messageBox("Title was backed up.");
-						else
-							messageBox("Title backup failed.");
-					}
-				}
-
-				break;
-			}
-*/
-			if (subCursor == TITLE_MENU_DUMP)
-			{
-				char fpath[256];
-				if (getTitle(cursor, NULL, fpath) == 1)
-				{
-					FILE* f = fopen(fpath, "rb");
-
-					if (!f)
-						messageBox("Can not dump title.\n");
-
-					else
-					{
-						int fsize = getFileSize(f);
-
-						if (fsize > getSDCardFree())
-							messageBox("Not enough free space on SD card.\n");
-
-						else
-						{
-							tNDSHeader header;
-							tNDSBanner banner;
-
-							fread(&header, sizeof(tNDSHeader), 1, f);
-							fseek(f, header.bannerOffset, SEEK_SET);
-							fread(&banner, sizeof(tNDSBanner), 1, f);
-							fclose(f);
-
-							char outpath[256];
-							sprintf(outpath, "%s%.12s - %.4s.nds", ROM_PATH, header.gameTitle, header.gameCode);
-
-							char msg[512];
-							sprintf(msg, "Dump title to\n%s\n", outpath);
-
-							if (choiceBox(msg) == YES)
-							{
-								if (copyFile(fpath, outpath) == 1)
-									messageBox("Title saved.\n");
-								else
-									messageBox("Title dump failed.\n");
-							}
-						}
-					}
-
-					fclose(f);
-				}
-
-				break;
-			}
-
-			else if (subCursor == TITLE_MENU_DELETE)
-			{
-				char msg[512];
-				sprintf(msg, "Are you sure you want to delete\n%s", title);
-
-				if (choiceBox(msg) == YES)
-				{
-					char dirPath[256];
-					sprintf(dirPath, "%.25s", path);
-
-					if (deleteDir(dirPath) == 1)
-						messageBox("Title deleted.\n");
-					else
-						messageBox("Title could not be deleted.\n");
-
-					//Reset main menu
-					cursor = 0;
-					scrolly = 0;
-					numberOfTitles = getNumberOfTitles();
-				}
-				
-				break;
-			}
-
-			else if (subCursor == TITLE_MENU_BACK)
-			{
-				break;
-			}
-		}
-		else if (keysDown() & KEY_B)
+		if (keysDown() & KEY_B)
 			break;
+
+		else if (keysDown() & KEY_A)
+		{
+			result = m->cursor;
+			break;
+		}
+	}
+
+	free(m);
+
+	return result;
+}
+
+static void dump(Menu* m)
+{
+	char fpath[256];	
+
+	if (_walkList(m, 1, fpath) == false)
+	{
+		messageBox("Failed to dump title.\n");
+	}
+	else
+	{
+		FILE* f = fopen(fpath, "rb");
+
+		if (!f)
+			messageBox("Can not dump title.\n");
+
+		else
+		{
+			int fsize = getFileSize(f);
+
+			if (fsize > getSDCardFree())
+			{
+				messageBox("Not enough free space on SD card.\n");
+			}
+			else
+			{
+				tNDSHeader* header = (tNDSHeader*)malloc(sizeof(tNDSHeader));
+				tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
+
+				fread(header, sizeof(tNDSHeader), 1, f);
+				fseek(f, header->bannerOffset, SEEK_SET);
+				fread(banner, sizeof(tNDSBanner), 1, f);
+				
+				fclose(f);
+
+				char outpath[256];
+				sprintf(outpath, "%s%.12s - %.4s.nds", ROM_PATH, header->gameTitle, header->gameCode);
+
+				int choice = NO;
+				{
+					char msg[512];
+					sprintf(msg, "Dump title to\n%s\n", outpath);
+					choice = choiceBox(msg);
+				}
+
+				if (choice == YES)
+				{
+					if (copyFile(fpath, outpath) == 1)
+						messageBox("Title saved.\n");
+					else
+						messageBox("Title dump failed.\n");
+				}
+
+				free(banner);
+				free(header);
+			}
+		}
+
+		fclose(f);
 	}
 }
+
+static void delete(Menu* m)
+{
+	char fpath[256];	
+
+	if (_walkList(m, 1, fpath) == false)
+	{
+		messageBox("Failed to delete title.\n");
+	}
+	else
+	{
+		int choice = NO;
+
+		{
+			//Get title name
+			char title[128+1];
+			title[128] = '\0';
+
+			FILE* f = fopen(fpath, "rb");
+
+			if (!f)
+			{
+				messageBox("Failed to delete title.\n");
+			}
+			else
+			{
+				tNDSHeader* header = (tNDSHeader*)malloc(sizeof(tNDSHeader));
+				tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
+
+				fseek(f, 0, SEEK_SET);
+				fread(header, sizeof(tNDSHeader), 1, f);
+				fseek(f, header->bannerOffset, SEEK_SET);
+				fread(banner, sizeof(tNDSBanner), 1, f);					
+
+				for (int i = 0; i < 128; i++)					
+					title[i] = (char)banner->titles[1][i];
+
+				free(banner);
+				free(header);
+			}
+
+			fclose(f);		
+
+			char msg[512];
+			sprintf(msg, "Are you sure you want to delete\n%s", title);
+			choice = choiceBox(msg);
+		}
+
+		if (choice == YES)
+		{
+			char dirpath[256];
+			sprintf(dirpath, "%.25s", fpath);
+
+			if (deleteDir(dirpath) == 1)
+				messageBox("Title deleted.\n");
+			else
+				messageBox("Title could not be deleted.\n");
+
+			generateList(m);
+			printItem(m);
+		}
+	}
+
+	printMenu(m);
+}
+/* Incomplete
+static void backupData(Menu* m)
+{
+	char msg[512];
+	char dirPath[256];
+	sprintf(dirPath, "/dsisave/%s", title);
+	sprintf(msg, "Backup data to\n%s", dirPath);
+
+	if (choiceBox(msg) == YES)
+	{
+		mkdir(dirPath, 0777);
+
+		FILE* f = fopen(path, "rb");
+
+		if (f)
+		{
+			tDSiHeader header;
+			fread(&header, sizeof(tDSiHeader), 1, f);
+			fclose(f);
+
+			char titleID[8+1];
+			sprintf(titleID, "%08x", (unsigned int)header.tid_low);
+
+			DIR* dir;
+			struct dirent* ent;
+
+			dir = opendir(ROM_PATH);
+
+			closedir(dir);
+		}
+
+		fclose(f);
+}
+
+static void restoreData(Menu* m)
+{
+
+}*/
