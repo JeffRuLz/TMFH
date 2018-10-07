@@ -2,7 +2,7 @@
 #include "menu.h"
 #include <time.h>
 
-#define VERSION "0.5"
+#define VERSION "0.5.1"
 
 enum {
 	MAIN_MENU_INSTALL,
