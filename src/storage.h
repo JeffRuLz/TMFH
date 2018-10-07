@@ -20,6 +20,7 @@ void clearProgressBar();
 int copyFile(const char* in, char* out);
 int getFileSize(FILE* f);
 int getFileSizePath(const char* path);
+int padFile(const char* path, int size);
 
 //Directories
 int dirExists(const char* path);

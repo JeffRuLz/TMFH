@@ -233,6 +233,24 @@ int getFileSizePath(const char* path)
 	return size;
 }
 
+int padFile(const char* path, int size)
+{
+	FILE* f = fopen(path, "ab");
+
+	if (!f)
+		return 0;
+
+	else
+	{
+		unsigned char zero = 0;
+		fwrite(&zero, sizeof(char), size, f);
+	}
+
+	fclose(f);
+	
+	return 1;
+}
+
 //Directories
 int dirExists(const char* path)
 {

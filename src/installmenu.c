@@ -419,7 +419,18 @@ void install(Menu* m)
 						goto error;
 					}
 
-					iprintf("Done\n");
+					iprintf("Done\n");					
+				}
+
+				//Pad out banner if it is the last part of the file
+				if (header->ndshdr.bannerOffset == fileSize - 0x1C00)
+				{
+					iprintf("Padding banner...");
+
+					if (padFile(appPath, 0x7C0) == false)
+						iprintf("Failed\n");
+					else
+						iprintf("Done\n");	
 				}
 
 				//Write new patched header
