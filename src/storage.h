@@ -9,7 +9,7 @@
 #define BYTES_PER_BLOCK (1024*128)
 
 //Printing
-void printBytes(int bytes);
+void printBytes(unsigned long long bytes);
 void printFileInfo(const char* path);
 
 //Progress bar
@@ -18,15 +18,15 @@ void clearProgressBar();
 
 //Files
 int copyFile(const char* in, char* out);
-int getFileSize(FILE* f);
-int getFileSizePath(const char* path);
+unsigned long long getFileSize(FILE* f);
+unsigned long long getFileSizePath(const char* path);
 int padFile(const char* path, int size);
 
 //Directories
 int dirExists(const char* path);
 //int copyDir(const char* in, char* out);
 int deleteDir(const char* path);
-int getDirSize(const char* path);
+unsigned long long getDirSize(const char* path);
 
 //Home menu
 int getMenuSlots();
@@ -36,8 +36,8 @@ int getMenuSlotsFree();
 //SD Card
 int sdIsInserted();
 
-int getSDCardSize();
-int getSDCardFree();
+unsigned long long getSDCardSize();
+unsigned long long getSDCardFree();
 #define getSDCardUsedSpace() (getSDCardSize() - getSDCardFree())
 
 //Internal storage

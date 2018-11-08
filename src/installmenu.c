@@ -307,7 +307,7 @@ void install(Menu* m)
 		}
 
 		//Print file size
-		int fileSize = -1;	
+		unsigned long long fileSize = 0;	
 
 		{
 			iprintf("File Size: ");

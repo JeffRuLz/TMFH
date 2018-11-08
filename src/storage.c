@@ -8,15 +8,15 @@
 #define TITLE_LIMIT 39
 
 //Printing
-void printBytes(int bytes)
+void printBytes(unsigned long long bytes)
 {
-	if (abs(bytes) < 1024)
-		iprintf("%dB", bytes);
+	if (bytes < 1024)
+		iprintf("%dB", (unsigned int)bytes);
 
-	else if (abs(bytes) < 1024 * 1024)
+	else if (bytes < 1024 * 1024)
 		printf("%.2fKB", (float)bytes / 1024);
 
-	else if (abs(bytes) < 1024 * 1024 * 1024)
+	else if (bytes < 1024 * 1024 * 1024)
 		printf("%.2fMB", (float)bytes / 1024 / 1024);
 
 	else
@@ -209,25 +209,25 @@ int copyFile(const char* in, char* out)
 	return result;
 }
 
-int getFileSize(FILE* f)
+unsigned long long getFileSize(FILE* f)
 {
 	if (!f)
 		return 0;
 
 	fseek(f, 0, SEEK_END);
-	int size = ftell(f);
+	unsigned long long size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 
 	return size;
 }
 
-int getFileSizePath(const char* path)
+unsigned long long getFileSizePath(const char* path)
 {
 	if (path == NULL)
 		return -1;
 
 	FILE* f = fopen(path, "rb");
-	int size = getFileSize(f);
+	unsigned long long size = getFileSize(f);
 	fclose(f);
 
 	return size;
@@ -372,12 +372,12 @@ int deleteDir(const char* path)
 	return 1;
 }
 
-int getDirSize(const char* path)
+unsigned long long getDirSize(const char* path)
 {
 	if (path == NULL)
 		return 0;
 
-	int size = 0;
+	unsigned long long size = 0;
 
 	DIR* dir;
 	struct dirent *ent;
@@ -472,7 +472,7 @@ int sdIsInserted()
 	return 1;
 }
 
-int getSDCardSize()
+unsigned long long getSDCardSize()
 {
 	if (sdIsInserted())
 	{
@@ -484,7 +484,7 @@ int getSDCardSize()
 	return 0;
 }
 
-int getSDCardFree()
+unsigned long long getSDCardFree()
 {
 	if (sdIsInserted())
 	{

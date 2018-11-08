@@ -2,7 +2,7 @@
 #include "menu.h"
 #include <time.h>
 
-#define VERSION "0.5.1"
+#define VERSION "0.5.2"
 
 enum {
 	MAIN_MENU_INSTALL,
@@ -18,6 +18,10 @@ int main(int argc, char **argv)
 {	
 	srand(time(0)); 
 
+	//Setup top screen
+	REG_DISPCNT = MODE_FB0;
+	VRAM_A_CR = VRAM_ENABLE;
+
 	videoSetMode(MODE_0_2D);
 	videoSetModeSub(MODE_0_2D);
 
@@ -30,13 +34,18 @@ int main(int argc, char **argv)
 	consoleSelect(&bottomScreen);
 	consoleClear();
 
+	VRAM_A[100] = 0xFFFF;
+
 	if (!fatInitDefault())
 	{
 		consoleSelect(&bottomScreen);
 		consoleClear();
 
-		iprintf("fatInitDefault...Failed\n");
-		iprintf("\nPress B to exit.\n");
+		//iprintf("fatInitDefault...Failed\n");
+		//iprintf("\nPress B to exit.\n");
+
+		for (int i = 0; i < 32*24; i++)
+			iprintf("%c", i);
 
 		keyWait(KEY_B | KEY_A | KEY_START);
 	}

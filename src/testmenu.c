@@ -12,8 +12,8 @@ void testMenu()
 	consoleSelect(&bottomScreen);
 	consoleClear();
 
-	int free = -1;
-	int size = -1;
+	unsigned int free = 0;
+	unsigned int size = 0;
 
 	//Home menu slots
 	{
@@ -30,15 +30,15 @@ void testMenu()
 	{
 		iprintf("\nFree SD Space:\n\t"); swiWaitForVBlank();
 
-		free = getSDCardFree();
-		printBytes(free);
+		unsigned long long sdfree = getSDCardFree();
+		printBytes(sdfree);
 		iprintf(" / "); swiWaitForVBlank();
 
-		size = getSDCardSize();
-		printBytes(size);	
+		unsigned long long sdsize = getSDCardSize();
+		printBytes(sdsize);	
 		iprintf("\n"); swiWaitForVBlank();
 
-		printf("\t%.0f / %.0f blocks\n", (float)free / BYTES_PER_BLOCK, (float)size / BYTES_PER_BLOCK);
+		printf("\t%d / %d blocks\n", (unsigned int)(sdfree / BYTES_PER_BLOCK), (unsigned int)(sdsize / BYTES_PER_BLOCK));
 	}
 
 	//Emunand
