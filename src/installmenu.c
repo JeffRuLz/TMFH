@@ -341,10 +341,13 @@ void install(Menu* m)
 			if (getDsiFree() < fileSize)
 			{
 				iprintf("No\n");
-				goto error;				
+				if (choiceBox("Try installing anyway?") == NO)
+					goto error;
 			}
-			
-			iprintf("Yes\n");
+			else
+			{
+				iprintf("Yes\n");
+			}
 		}
 
 		//Menu slot check
@@ -354,10 +357,13 @@ void install(Menu* m)
 			if (getMenuSlotsFree() <= 0)
 			{
 				iprintf("No\n");
-				goto error;	
+				if (choiceBox("Try installing anyway?") == NO)
+					goto error;
 			}
-
-			iprintf("Yes\n");
+			else
+			{
+				iprintf("Yes\n");
+			}			
 		}
 
 		//Create title directory
