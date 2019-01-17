@@ -20,7 +20,6 @@ BUILD		:=	build
 SOURCES		:=	src
 DATA		:=	data  
 INCLUDES	:=	include
-#GAME_ICON	:=	$(CURDIR)/icon.bmp
 
 GAME_TITLE		:=	TMFH
 GAME_SUBTITLE1	:=	Title Manager for HiyaCFW

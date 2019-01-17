@@ -1,6 +1,7 @@
 #ifndef STORAGE_H
 #define STORAGE_H
 
+#include <nds/ndstypes.h>
 #include <stdio.h>
 
 #define BACKUP_PATH "/titlebackup/"
@@ -13,19 +14,19 @@ void printBytes(unsigned long long bytes);
 void printFileInfo(const char* path);
 
 //Progress bar
-void printProgressBar(int progress, int total);
+void printProgressBar(int percent);
 void clearProgressBar();
 
 //Files
-int copyFile(const char* in, char* out);
+bool copyFile(const char* in, char* out);
 unsigned long long getFileSize(FILE* f);
 unsigned long long getFileSizePath(const char* path);
-int padFile(const char* path, int size);
+bool padFile(const char* path, int size);
 
 //Directories
-int dirExists(const char* path);
+bool dirExists(const char* path);
 //int copyDir(const char* in, char* out);
-int deleteDir(const char* path);
+bool deleteDir(const char* path);
 unsigned long long getDirSize(const char* path);
 
 //Home menu
@@ -34,7 +35,7 @@ int getMenuSlotsFree();
 #define getMenuSlotsUsed() (getMenuSlots() - getMenuSlotsFree())
 
 //SD Card
-int sdIsInserted();
+bool sdIsInserted();
 
 unsigned long long getSDCardSize();
 unsigned long long getSDCardFree();

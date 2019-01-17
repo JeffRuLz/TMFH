@@ -15,8 +15,6 @@ static void delete(Menu* m);
 enum {
 //	TITLE_MENU_BACKUP,
 	TITLE_MENU_DUMP,
-//	TITLE_MENU_BACKUP_DATA,
-//	TITLE_MENU_RESTORE_DATA,
 	TITLE_MENU_DELETE,
 	TITLE_MENU_BACK
 };
@@ -25,11 +23,8 @@ void titleMenu()
 {
 	Menu* m = (Menu*)malloc(sizeof(Menu));
 
-	consoleSelect(&topScreen);
-	consoleClear();	
-
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&topScreen);
+	clearScreen(&bottomScreen);
 
 	generateList(m);
 
@@ -67,6 +62,10 @@ void titleMenu()
 		{
 			switch (subMenu())
 			{
+/*				case TITLE_MENU_BACKUP:
+					backup(m);
+					break;
+*/
 				case TITLE_MENU_DUMP:
 					dump(m);
 					break;
@@ -217,9 +216,7 @@ void generateList(Menu* m)
 {
 	if (m == NULL) return;
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
-
+	clearScreen(&bottomScreen);
 	iprintf("Gathering files...\n"); swiWaitForVBlank();
 
 	clearMenu(m);
@@ -243,10 +240,8 @@ int subMenu()
 	Menu* m = (Menu*)malloc(sizeof(Menu));
 	clearMenu(m);
 
-//	iprintf("\tBackup\n");
+//	addMenuItem(m, "Backup");
 	addMenuItem(m, "Dump");
-//	addMenuItem(m, "Backup Saved Data");
-//	addMenuItem(m, "Restore Saved Data");
 	addMenuItem(m, "Delete");
 	addMenuItem(m, "Back");
 
@@ -292,7 +287,7 @@ static void dump(Menu* m)
 
 		else
 		{
-			int fsize = getFileSize(f);
+			unsigned long long fsize = getFileSize(f);
 
 			if (fsize > getSDCardFree())
 			{
@@ -312,7 +307,7 @@ static void dump(Menu* m)
 				char outpath[256];
 				sprintf(outpath, "%s%.12s - %.4s.nds", ROM_PATH, header->gameTitle, header->gameCode);
 
-				int choice = NO;
+				bool choice = NO;
 				{
 					char msg[512];
 					sprintf(msg, "Dump title to\n%s\n", outpath);
@@ -346,7 +341,7 @@ static void delete(Menu* m)
 	}
 	else
 	{
-		int choice = NO;
+		bool choice = NO;
 
 		{
 			//Get title name
@@ -401,7 +396,7 @@ static void delete(Menu* m)
 	printMenu(m);
 }
 /* Incomplete
-static void backupData(Menu* m)
+static void backup(Menu* m)
 {
 	char msg[512];
 	char dirPath[256];
@@ -433,8 +428,4 @@ static void backupData(Menu* m)
 
 		fclose(f);
 }
-
-static void restoreData(Menu* m)
-{
-
-}*/
+*/

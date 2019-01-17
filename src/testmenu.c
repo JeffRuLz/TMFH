@@ -4,13 +4,11 @@
 
 void testMenu()
 {
-	consoleSelect(&topScreen);
-	consoleClear();
+	clearScreen(&topScreen);
 
 	iprintf("Storage Check Test\n\n");
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	unsigned int free = 0;
 	unsigned int size = 0;

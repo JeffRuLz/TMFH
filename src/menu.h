@@ -25,16 +25,18 @@ void printMenu(Menu* m);
 
 int getMenuCursor(Menu* m);
 int getNumberOfMenuItems(Menu* m);
-int moveCursor(Menu* m);
+bool moveCursor(Menu* m);
 
 void addMenuItem(Menu* m, char* label);
 
-
-#define YES 1
-#define NO  0
+enum {
+	YES = true,
+	NO = false
+};
 
 void keyWait(u32 key);
-int choiceBox(char* message);
+bool choiceBox(char* message);
+bool choicePrint(char* message);
 void messageBox(char* message);
 
 #endif

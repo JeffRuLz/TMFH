@@ -5,7 +5,6 @@
 #include "maketmd.h"
 #include <dirent.h>
 
-
 enum {
 	INSTALL_MENU_INSTALL,
 	INSTALL_MENU_DELETE,
@@ -19,7 +18,6 @@ static int subMenu();
 static void install(Menu* m);
 static void delete(Menu* m);
 
-
 void installMenu()
 {
 	Menu* m = (Menu*)malloc(sizeof(Menu));
@@ -30,8 +28,7 @@ void installMenu()
 	//No files found
 	if (getNumberOfMenuItems(m) <= 0)
 	{
-		consoleSelect(&bottomScreen);
-		consoleClear();
+		clearScreen(&bottomScreen);
 
 		iprintf("No files found.\n");
 		iprintf("Place .nds, .app, or .dsi files in %s\n", ROM_PATH);
@@ -153,8 +150,7 @@ void generateList(Menu* m)
 {
 	if (m == NULL) return;
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	iprintf("Gathering files...\n");
 
@@ -227,9 +223,7 @@ void install(Menu* m)
 	}
 
 	//Start installation
-	consoleSelect(&bottomScreen);
-	consoleClear();
-
+	clearScreen(&bottomScreen);
 	iprintf("Installing %s\n", fpath); swiWaitForVBlank();
 	
 	tDSiHeader* header = (tDSiHeader*)malloc(sizeof(tDSiHeader));
@@ -244,7 +238,7 @@ void install(Menu* m)
 	}
 	else
 	{
-		bool patchHeader = false;
+		bool fixHeader = false;
 
 		//Read header and banner
 		{
@@ -259,9 +253,9 @@ void install(Menu* m)
 		if ((strcmp(header->ndshdr.gameCode, "####") == 0 && header->tid_low == 0x23232323) ||
 			(!*header->ndshdr.gameCode && header->tid_low == 0))
 		{
-			iprintf("Patching header...");
+			fixHeader = true;
 
-			patchHeader = true;
+			iprintf("Fixing Game Code...");
 
 			//Set as standard app
 			header->tid_high = 0x00030004;
@@ -282,19 +276,21 @@ void install(Menu* m)
 			}
 			while (titleIsUsed(header->tid_low, header->tid_high) == true);
 
-			//Fix header checksum
-			header->ndshdr.headerCRC16 = swiCRC16(0xFFFF, header, 0x15E);
-			
-			//Fix RSA signature
-			u8 buffer[20];
-			swiSHA1Calc(&buffer, header, 0xE00);
-			memcpy(&(header->rsa_signature[0x6C]), buffer, 20);
+			iprintf("Done\n");
+		}
 
+		//Fix ique header
+		if (header->ndshdr.reserved1[8] == 0x80)
+		{
+			fixHeader = true;
+
+			iprintf("iQue Hack...");			
+			header->ndshdr.reserved1[8] = 0x00;
 			iprintf("Done\n");
 		}
 
 		//Must be DSi rom
-		//High title id must be one of three
+		//High title id must be one of four
 		{
 			if (header->tid_high != 0x00030004 &&
 				header->tid_high != 0x00030005 &&
@@ -341,8 +337,11 @@ void install(Menu* m)
 			if (getDsiFree() < fileSize)
 			{
 				iprintf("No\n");
-				if (choiceBox("Try installing anyway?") == NO)
+
+				if (choicePrint("Try installing anyway?") == NO)
+				{
 					goto error;
+				}
 			}
 			else
 			{
@@ -357,8 +356,11 @@ void install(Menu* m)
 			if (getMenuSlotsFree() <= 0)
 			{
 				iprintf("No\n");
-				if (choiceBox("Try installing anyway?") == NO)
+
+				if (choicePrint("Try installing anyway?") == NO)
+				{
 					goto error;
+				}
 			}
 			else
 			{
@@ -383,19 +385,12 @@ void install(Menu* m)
 			{
 				closedir(dir);
 
-				iprintf("Title %s is already used.\nInstall anyway?\n", titleID);
-				iprintf("Yes - A\nNo  - B\n");
+				char msg[512];
+				sprintf(msg, "Title %s is already used.\nInstall anyway?", titleID);
 
-				while (1)
+				if (choicePrint(msg) == NO)
 				{
-					swiWaitForVBlank();
-					scanKeys();
-
-					if (keysDown() & KEY_A)
-						break;
-
-					if (keysDown() & KEY_B)
-						goto complete;
+					goto complete;
 				}
 			}
 		}
@@ -439,10 +434,18 @@ void install(Menu* m)
 						iprintf("Done\n");	
 				}
 
-				//Write new patched header
-				if (patchHeader == true)
+				//Fix and write new header
+				if (fixHeader == true)
 				{
 					iprintf("Writing header...");
+
+					//Fix header checksum
+					header->ndshdr.headerCRC16 = swiCRC16(0xFFFF, header, 0x15E);
+					
+					//Fix RSA signature
+					u8 buffer[20];
+					swiSHA1Calc(&buffer, header, 0xE00);
+					memcpy(&(header->rsa_signature[0x6C]), buffer, 20);
 					
 					FILE* f = fopen(appPath, "r+");
 

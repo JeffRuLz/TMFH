@@ -2,7 +2,7 @@
 #include "menu.h"
 #include <time.h>
 
-#define VERSION "0.5.2"
+#define VERSION "0.5.5"
 
 enum {
 	MAIN_MENU_INSTALL,
@@ -18,7 +18,7 @@ int main(int argc, char **argv)
 {	
 	srand(time(0)); 
 
-	//Setup top screen
+	//Setup screens
 	REG_DISPCNT = MODE_FB0;
 	VRAM_A_CR = VRAM_ENABLE;
 
@@ -28,51 +28,52 @@ int main(int argc, char **argv)
 	vramSetBankA(VRAM_A_MAIN_BG);
 	vramSetBankC(VRAM_C_SUB_BG);
 
-	consoleInit(&topScreen,    3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true, true);
+	consoleInit(&topScreen,    3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, true,  true);
 	consoleInit(&bottomScreen, 3, BgType_Text4bpp, BgSize_T_256x256, 31, 0, false, true);
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	VRAM_A[100] = 0xFFFF;
 
+	//Cannot use SD card
 	if (!fatInitDefault())
 	{
-		consoleSelect(&bottomScreen);
-		consoleClear();
+		clearScreen(&bottomScreen);
 
-		//iprintf("fatInitDefault...Failed\n");
-		//iprintf("\nPress B to exit.\n");
-
-		for (int i = 0; i < 32*24; i++)
-			iprintf("%c", i);
+		iprintf("fatInitDefault()...Failed\n");
+		iprintf("\nPress B to exit.\n");
 
 		keyWait(KEY_B | KEY_A | KEY_START);
+
+		return 0;
 	}
-	else
+
+	//Main menu selection
+	bool programEnd = false;
+
+	while (!programEnd)
 	{
-		bool programEnd = false;
-
-		while (!programEnd)
+		switch (mainMenu())
 		{
-			switch (mainMenu())
-			{
-				case MAIN_MENU_INSTALL:
-					installMenu();
-					break;
+			case MAIN_MENU_INSTALL:
+				installMenu();
+				break;
 
-				case MAIN_MENU_TITLES:
-					titleMenu();
-					break;
+			case MAIN_MENU_TITLES:
+				titleMenu();
+				break;
 
-				case MAIN_MENU_TEST:
-					testMenu();
-					break;
+/*			case MAIN_MENU_RESTORE:
+				restoreMenu();
+				break;
+*/
+			case MAIN_MENU_TEST:
+				testMenu();
+				break;
 
-				case MAIN_MENU_EXIT:
-					programEnd = true;
-					break;
-			}
+			case MAIN_MENU_EXIT:
+				programEnd = true;
+				break;
 		}
 	}
 
@@ -81,18 +82,18 @@ int main(int argc, char **argv)
 
 static int mainMenu()
 {
-	consoleSelect(&topScreen);
-	consoleClear();
+	clearScreen(&topScreen);
 
 	iprintf("\tTitle Manager for HiyaCFW\n");
 	iprintf("\nversion %s\n", VERSION);
-	iprintf("\x1b[23;0HJeff - 2018");
+	iprintf("\x1b[23;0HJeff - 2018-2019");
 
 	Menu* m = (Menu*)malloc(sizeof(Menu));
 	clearMenu(m);
 
 	addMenuItem(m, "Install");
 	addMenuItem(m, "Titles");
+//	addMenuItem(m, "Restore");
 	addMenuItem(m, "Test");
 	addMenuItem(m, "Exit");
 
@@ -114,4 +115,10 @@ static int mainMenu()
 	free(m);
 
 	return cursor;
+}
+
+void clearScreen(PrintConsole* screen)
+{
+	consoleSelect(screen);
+	consoleClear();
 }

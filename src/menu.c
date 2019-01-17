@@ -25,8 +25,7 @@ void printMenu(Menu* m)
 	if (m == NULL) return;
 
 	swiWaitForVBlank();
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	int i = m->scrolly;
 	while (i < m->scrolly + SCREEN_ROWS && i < m->numberOfItems)
@@ -77,10 +76,10 @@ static void _moveCursor(Menu* m, int dir)
 		m->scrolly -= 1;
 }
 
-int moveCursor(Menu* m)
+bool moveCursor(Menu* m)
 {
 	if (m == NULL)
-		return 0;
+		return false;
 
 	int lastCursor = m->cursor;
 
@@ -131,13 +130,12 @@ void keyWait(u32 key)
 	}
 }
 
-int choiceBox(char* message)
+bool choiceBox(char* message)
 {	
 	const int choiceRow = 10;
 	int cursor = 0;
 
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	iprintf("%s\n", message);
 	iprintf("\x1b[%d;0H\tYes\n\tNo\n", choiceRow);
@@ -170,10 +168,38 @@ int choiceBox(char* message)
 	return (cursor == 0)? YES: NO;
 }
 
+bool choicePrint(char* message)
+{
+	bool choice = NO;
+
+	iprintf("\n%s\n", message);
+	iprintf("Yes - A\nNo  - B\n");
+
+	while (1)
+	{
+		swiWaitForVBlank();
+		scanKeys();
+
+		if (keysDown() & KEY_A)
+		{
+			choice = YES;
+			break;
+		}
+
+		else if (keysDown() & KEY_B)
+		{
+			choice = NO;
+			break;
+		}
+	}
+
+	scanKeys();
+	return choice;
+}
+
 void messageBox(char* message)
 {
-	consoleSelect(&bottomScreen);
-	consoleClear();
+	clearScreen(&bottomScreen);
 
 	iprintf("%s\n", message);
 	iprintf("\nOkay - A\n");

@@ -3,7 +3,6 @@
 #include <nds.h>
 #include <string.h>
 #include <dirent.h>
-//#include <nds/arm7/sdmmc.h>
 
 #define TITLE_LIMIT 39
 
@@ -27,8 +26,7 @@ void printFileInfo(const char* path)
 {
 	if (path == NULL) return;
 
-	consoleSelect(&topScreen);
-	consoleClear();
+	clearScreen(&topScreen);
 
 	tDSiHeader* header = (tDSiHeader*)malloc(sizeof(tDSiHeader));
 	tNDSBanner* banner = (tNDSBanner*)malloc(sizeof(tNDSBanner));
@@ -125,14 +123,24 @@ void printFileInfo(const char* path)
 }
 
 //Progress bar
-void printProgressBar(int progress, int total)
+void printProgressBar(int percent)
 {
+	//Limit 100 max
+	if (percent > 100)
+		percent = 100;
+
+	//Print frame
 	iprintf("\x1b[23;0H[");
 	iprintf("\x1b[23;31H]");
 
-	float bar = ((float)progress / (float)total) * 30.f;
+	//Skip if there are no bars
+	if (percent <= 0)
+		return;
 
-	for (int i = 0; i < bar; i++)
+	//Print bars
+	int bars = (int)(30.f * (percent / 100.f)) + 1;
+
+	for (int i = 0; i < bars; i++)
 		iprintf("\x1b[23;%dH|", 1 + i);
 }
 
@@ -142,12 +150,12 @@ void clearProgressBar()
 }
 
 //Files
-int copyFile(const char* in, char* out)
+bool copyFile(const char* in, char* out)
 {
-	int result = 0;
+	bool result = false;
 
 	if (in == NULL || out == NULL)
-		return 0;
+		return false;
 
 	FILE* fin = fopen(in, "rb");
 	FILE* fout = fopen(out, "wb");
@@ -157,7 +165,7 @@ int copyFile(const char* in, char* out)
 		fclose(fin);
 		fclose(fout);
 
-		return 0;
+		return false;
 	}
 	else
 	{
@@ -165,9 +173,11 @@ int copyFile(const char* in, char* out)
 
 		int fileSize = getFileSize(fin);
 		int totalBytesRead = 0;
-		int progressTimer = 100;
 
-		const int buffSize = 1024*32; //Arbitrary. A value too large freezes the system.
+		int percent = 0;
+		int lastPercent = 0;
+
+		const int buffSize = 1024*8; //Arbitrary. A value too large freezes the system.
 		unsigned char* buffer = (unsigned char*)malloc(sizeof(unsigned char) * buffSize);		
 
 		while (1)
@@ -178,10 +188,11 @@ int copyFile(const char* in, char* out)
 			totalBytesRead += bytesRead;
 
 			//Re-print progress bar every so often, but not every time
-			if ((progressTimer += 1) >= 25)
+			percent = (int)( ((float)totalBytesRead / (float)fileSize) * 100.f );			
+			if (percent != lastPercent)
 			{
-				progressTimer = 0;
-				printProgressBar(totalBytesRead, fileSize);
+				lastPercent = percent;
+				printProgressBar(percent);
 			}			
 
 			if (feof(fin))
@@ -233,7 +244,7 @@ unsigned long long getFileSizePath(const char* path)
 	return size;
 }
 
-int padFile(const char* path, int size)
+bool padFile(const char* path, int size)
 {
 	FILE* f = fopen(path, "ab");
 
@@ -252,7 +263,7 @@ int padFile(const char* path, int size)
 }
 
 //Directories
-int dirExists(const char* path)
+bool dirExists(const char* path)
 {
 	if (path == NULL)
 		return 0;
@@ -322,11 +333,11 @@ int copyDir(char* in, char* out)
 }
 */
 
-int deleteDir(const char* path)
+bool deleteDir(const char* path)
 {
 	if (strcmp("/", path) == 0)
 	{
-		//Oh fuck no
+		//oh fuck no
 		return 0;
 	}
 
@@ -464,9 +475,8 @@ int getMenuSlotsFree()
 }
 
 //SD Card
-int sdIsInserted()
+bool sdIsInserted()
 {
-// Undefined reference
 //	return sdmmc_cardinserted();
 
 	return 1;
@@ -501,7 +511,6 @@ int getDsiSize()
 {
 	//The DSi has 256MB of internal storage. Some is unavailable and used by other things.
 	//Find a better way to do this
-//	return 240 * 1024 * 1024;
 	return 248 * 1024 * 1024;
 }
 
