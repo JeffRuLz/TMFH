@@ -511,7 +511,8 @@ int getDsiSize()
 {
 	//The DSi has 256MB of internal storage. Some is unavailable and used by other things.
 	//Find a better way to do this
-	return 248 * 1024 * 1024;
+	//return 248 * 1024 * 1024;
+	return 240 * 1024 * 1024;
 }
 
 int getDsiFree()
@@ -531,6 +532,8 @@ int getDsiFree()
 
 	size -= getDirSize("/photo/");
 	size -= getDirSize("/private/");
+	
+	size += getDirSize("/title/00030015/");
 	
 	return size;
 }

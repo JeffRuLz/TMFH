@@ -7,6 +7,7 @@
 
 enum {
 	INSTALL_MENU_INSTALL,
+	INSTALL_MENU_SYSTEM_TITLE,
 	INSTALL_MENU_DELETE,
 	INSTALL_MENU_BACK
 };
@@ -15,7 +16,7 @@ static void generateList(Menu* m);
 static void printItem(Menu* m);
 
 static int subMenu();
-static void install(Menu* m);
+static void install(Menu* m, bool systemTitle);
 static void delete(Menu* m);
 
 void installMenu()
@@ -62,7 +63,11 @@ void installMenu()
 			switch (subMenu())
 			{
 				case INSTALL_MENU_INSTALL:
-					install(m);
+					install(m, false);
+					break;
+					
+				case INSTALL_MENU_SYSTEM_TITLE:
+					install(m, true);
 					break;
 
 				case INSTALL_MENU_DELETE:
@@ -118,7 +123,7 @@ static bool _walkList(Menu* m, int mode, char* out)
 					if (mode == 0)
 					{
 						char name[128];
-						sprintf(name, "%s", ent->d_name);
+						sprintf(name, "%.127s", ent->d_name);
 
 						addMenuItem(m, name);
 					}
@@ -175,6 +180,7 @@ int subMenu()
 	clearMenu(m);
 
 	addMenuItem(m, "Install");
+	addMenuItem(m, "Install as System Title");
 	addMenuItem(m, "Delete");
 	addMenuItem(m, "Back - B");
 
@@ -203,7 +209,7 @@ int subMenu()
 	return result;
 }
 
-void install(Menu* m)
+void install(Menu* m, bool systemTitle)
 {
 	char fpath[256];	
 
@@ -288,6 +294,16 @@ void install(Menu* m)
 			header->ndshdr.reserved1[8] = 0x00;
 			iprintf("Done\n");
 		}
+		
+		//Convert into a system title
+		if (systemTitle)
+		{
+			fixHeader = true;
+
+			iprintf("System Title Patch...");			
+			header->tid_high = 0x00030015;
+			iprintf("Done\n");
+		}
 
 		//Must be DSi rom
 		//High title id must be one of four
@@ -331,6 +347,7 @@ void install(Menu* m)
 		}
 
 		//DSi storage check
+		if (header->tid_high != 0x00030015)
 		{
 			iprintf("Enough room on DSi?...");
 
