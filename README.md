@@ -12,9 +12,7 @@ Delete titles
 
 - Ability to delete system titles and others hidden from Data Management.
 
-Dump title
-
-- Backup an installed title to a nds file.
+Backup and Restore Titles
 
 View basic title header info
 
