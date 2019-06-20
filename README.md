@@ -2,19 +2,13 @@
 A basic title manager for DSi emunand.
 
 ## Features
-Install titles
-
 - Install DSiWare and homebrew onto your emunand home menu.
 
-- Place nds and app files in a folder on your SD card called /dsi/.
+- Delete system titles and others hidden from Data Management.
 
-Delete titles
+- Backup and restore installed titles.
 
-- Ability to delete system titles and others hidden from Data Management.
-
-Backup and Restore Titles
-
-View basic title header info
+- View basic title header info.
 
 ## Notes
 Backup your SD card! Nothing bad should happen, but this is an early release so who knows.
