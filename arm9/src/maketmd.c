@@ -141,7 +141,9 @@ int maketmd(char* input, char* tmdPath)
 	iprintf("by Przemyslaw Skryjomski\n\t(Tuxality)\n");
 
 	if(input == NULL || tmdPath == NULL) {
+		iprintf("\x1B[33m");	//yellow
 		iprintf("\nUsage: %s file.app <file.tmd>\n", "maketmd");
+		iprintf("\x1B[47m");	//white
 		return 1;
 	}
 
@@ -149,7 +151,9 @@ int maketmd(char* input, char* tmdPath)
 	FILE* app = fopen(input, "rb");
 
 	if(!app) {
+		iprintf("\x1B[31m");	//red
 		iprintf("Error at opening %s for reading.\n", input);
+		iprintf("\x1B[47m");	//white
 		return 1;
 	}
 
@@ -159,7 +163,9 @@ int maketmd(char* input, char* tmdPath)
 	if (!tmd)
 	{
 		fclose(app);
+		iprintf("\x1B[31m");	//white
 		iprintf("Error at opening %s for writing.\n", tmdPath);
+		iprintf("\x1B[47m");	//white
 		return 1;
 	}
 

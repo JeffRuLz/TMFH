@@ -1,5 +1,5 @@
 #include "main.h"
-#include "app.h"
+#include "rom.h"
 #include "menu.h"
 #include "message.h"
 #include "storage.h"
@@ -20,6 +20,7 @@ static bool delete(Menu* m);
 void titleMenu()
 {
 	Menu* m = newMenu();
+	setMenuHeader(m, "INSTALLED TITLES");
 	generateList(m);
 
 	//no titles
@@ -146,9 +147,9 @@ static void generateList(Menu* m)
 											sprintf(path, "%s/%s", contentPath, subent->d_name);
 
 											char title[128];
-											getAppTitle(path, title);
+											getGameTitlePath(path, title, false);
 
-											addMenuItem(m, title, path);
+											addMenuItem(m, title, path, 0);
 
 											free(path);
 										}																			
@@ -180,7 +181,7 @@ static void generateList(Menu* m)
 static void printItem(Menu* m)
 {
 	if (!m) return;
-	printAppInfo(m->items[m->cursor]);
+	printRomInfo(m->items[m->cursor].value);
 }
 
 static int subMenu()
@@ -189,9 +190,9 @@ static int subMenu()
 
 	Menu* m = newMenu();
 
-	addMenuItem(m, "Backup", NULL);
-	addMenuItem(m, "Delete", NULL);
-	addMenuItem(m, "Back - [B]", NULL);
+	addMenuItem(m, "Backup", NULL, 0);
+	addMenuItem(m, "Delete", NULL, 0);
+	addMenuItem(m, "Back - [B]", NULL, 0);
 
 	printMenu(m);
 
@@ -219,16 +220,18 @@ static int subMenu()
 
 static void backup(Menu* m)
 {
-	char* fpath = m->items[m->cursor];
+	char* fpath = m->items[m->cursor].value;
 	char* backname = NULL;
+
+	tDSiHeader* h = getRomHeader(fpath);
 
 	{
 		//make backup folder name
 		char label[16];
-		getAppLabel(fpath, label);
+		getRomLabel(h, label);
 
 		char gamecode[5];
-		getGameCode(fpath, gamecode);
+		getRomCode(h, gamecode);
 
 		backname = (char*)malloc(strlen(label) + strlen(gamecode) + 16);
 		sprintf(backname, "%s-%s", label, gamecode);
@@ -263,7 +266,7 @@ static void backup(Menu* m)
 	{
 		u32 tid_low = 1;
 		u32 tid_high = 1;
-		getTid(fpath, &tid_low, &tid_high);
+		getTitleId(h, &tid_low, &tid_high);
 
 		char* srcpath = (char*)malloc(strlen("/title/") + 32);
 		sprintf(srcpath, "/title/%08x/%08x", (unsigned int)tid_high, (unsigned int)tid_low);
@@ -310,20 +313,21 @@ static void backup(Menu* m)
 	}
 
 	free(backname);
+	free(h);
 }
 
 static bool delete(Menu* m)
 {
 	if (!m) return false;
 
-	char* fpath = m->items[m->cursor];
+	char* fpath = m->items[m->cursor].value;
 	
 	bool result = false;
 	bool choice = NO;
 	{
 		//get app title
 		char title[128];
-		getAppTitle(m->items[m->cursor], title);
+		getGameTitlePath(m->items[m->cursor].value, title, false);
 
 		char str[] = "Are you sure you want to delete\n";
 		char* msg = (char*)malloc(strlen(str) + strlen(title) + 8);
@@ -343,7 +347,7 @@ static bool delete(Menu* m)
 		else
 		{
 			char dirPath[64];
-			sprintf(dirPath, "%.25s", fpath);
+			sprintf(dirPath, "%.24s", fpath);
 
 			if (!dirExists(dirPath))
 			{

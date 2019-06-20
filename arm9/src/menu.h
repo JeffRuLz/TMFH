@@ -3,7 +3,13 @@
 
 #include <nds/ndstypes.h>
 
-#define ITEMS_PER_PAGE 23
+#define ITEMS_PER_PAGE 20
+
+typedef struct {
+	bool directory;
+	char* label;
+	char* value;
+} Item;
 
 typedef struct {
 	int cursor;
@@ -11,14 +17,15 @@ typedef struct {
 	int itemCount;
 	bool nextPage;
 	int changePage;
-	char* labels[ITEMS_PER_PAGE];
-	char* items[ITEMS_PER_PAGE];
+	char header[32];
+	Item items[ITEMS_PER_PAGE];
 } Menu;
 
 Menu* newMenu();
 void freeMenu(Menu* m);
 
-void addMenuItem(Menu* m, char const* label, char const* value);
+void addMenuItem(Menu* m, char const* label, char const* value, bool directory);
+void setMenuHeader(Menu* m, char* str);
 
 void resetMenu(Menu* m);
 void clearMenu(Menu* m);

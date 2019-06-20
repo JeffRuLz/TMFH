@@ -10,11 +10,13 @@ Menu* newMenu()
 	m->itemCount = 0;
 	m->nextPage = false;
 	m->changePage = 0;
+	m->header[0] = '\0';
 
 	for (int i = 0; i < ITEMS_PER_PAGE; i++)
 	{
-		m->labels[i] = NULL;
-		m->items[i] = NULL;
+		m->items[i].directory = false;
+		m->items[i].label = NULL;
+		m->items[i].value = NULL;
 	}
 
 	return m;
@@ -30,26 +32,46 @@ void freeMenu(Menu* m)
 	m = NULL;
 }
 
-void addMenuItem(Menu* m, char const* label, char const* value)
+void addMenuItem(Menu* m, char const* label, char const* value, bool directory)
 {
 	if (!m) return;
 
 	int i = m->itemCount;
 	if (i >= ITEMS_PER_PAGE) return;
 
+	m->items[i].directory = directory;
+
 	if (label)
 	{
-		m->labels[i] = (char*)malloc(32);
-		sprintf(m->labels[i], "%.31s", label);
+		m->items[i].label = (char*)malloc(32);
+		sprintf(m->items[i].label, "%.31s", label);
 	}
 
 	if (value)
 	{
-		m->items[i] = (char*)malloc(strlen(value)+1);
-		sprintf(m->items[i], "%s", value);
+		m->items[i].value = (char*)malloc(strlen(value)+1);
+		sprintf(m->items[i].value, "%s", value);
 	}
 	
 	m->itemCount += 1;
+}
+
+void setMenuHeader(Menu* m, char* str)
+{
+	if (!m) return;
+	
+	if (!str)
+	{
+		m->header[0] = '\0';
+		return;
+	}
+
+	char* strPtr = str;
+
+	if (strlen(strPtr) > 30)
+		strPtr = str + (strlen(strPtr) - 30);
+
+	sprintf(m->header, "%.30s", strPtr);
 }
 
 void resetMenu(Menu* m)
@@ -66,16 +88,16 @@ void clearMenu(Menu* m)
 
 	for (int i = 0; i < ITEMS_PER_PAGE; i++)
 	{
-		if (m->labels[i])
+		if (m->items[i].label)
 		{
-			free(m->labels[i]);
-			m->labels[i] = NULL;
+			free(m->items[i].label);
+			m->items[i].label = NULL;
 		}
 
-		if (m->items[i])
+		if (m->items[i].value)
 		{
-			free(m->items[i]);
-			m->items[i] = NULL;
+			free(m->items[i].value);
+			m->items[i].value = NULL;
 		}
 	}
 
@@ -88,23 +110,40 @@ void printMenu(Menu* m)
 
 	if (!m) return;
 
+	//header
+	iprintf("\x1B[42m");	//green
+	iprintf("%.30s\n\n", m->header);
+	iprintf("\x1B[47m");	//white
+
+	if (m->itemCount <= 0)
+	{
+		iprintf("Back - [B]\n");
+		return;
+	}
+
+	//items
 	for (int i = 0; i < m->itemCount; i++)
 	{
-		if (m->labels[i])
-			iprintf(" %.30s\n", m->labels[i]);
+		if (m->items[i].label)
+		{
+			if (m->items[i].directory)
+				iprintf(" [%.28s]\n", m->items[i].label);
+			else
+				iprintf(" %.30s\n", m->items[i].label);
+		}
 		else
 			iprintf(" \n");
 	}
 
-	//cursor
-	iprintf("\x1b[%d;0H>", m->cursor);
+	//cursor	
+	iprintf("\x1b[%d;0H>", 2 + m->cursor);
 
 	//scroll arrows
 	if (m->page > 0)
-		iprintf("\x1b[0;31H^");
+		iprintf("\x1b[2;31H^");
 
 	if (m->nextPage)
-		iprintf("\x1b[22;31Hv");
+		iprintf("\x1b[21;31Hv");
 }
 
 static void _moveCursor(Menu* m, int dir)
@@ -127,7 +166,7 @@ static void _moveCursor(Menu* m, int dir)
 
 	else if (m->cursor > m->itemCount-1)
 	{
-		if (m->cursor >= ITEMS_PER_PAGE)
+		if (m->nextPage && m->cursor >= ITEMS_PER_PAGE)
 		{
 			m->changePage = 1;
 			m->cursor = 0;

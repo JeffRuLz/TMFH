@@ -20,7 +20,9 @@ bool choiceBox(char* message)
 
 	clearScreen(&bottomScreen);
 
+	iprintf("\x1B[33m");	//yellow
 	iprintf("%s\n", message);
+	iprintf("\x1B[47m");	//white
 	iprintf("\x1b[%d;0H\tYes\n\tNo\n", choiceRow);
 
 	while (1)
@@ -55,7 +57,9 @@ bool choicePrint(char* message)
 {
 	bool choice = NO;
 
+	iprintf("\x1B[33m");	//yellow
 	iprintf("\n%s\n", message);
+	iprintf("\x1B[47m");	//white
 	iprintf("Yes - [A]\nNo  - [B]\n");
 
 	while (1)

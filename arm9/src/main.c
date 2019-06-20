@@ -3,7 +3,7 @@
 #include "message.h"
 #include <time.h>
 
-#define VERSION "0.6.5 beta"
+#define VERSION "0.6.8"
 
 enum {
 	MAIN_MENU_INSTALL,
@@ -43,12 +43,13 @@ static int _mainMenu(int cursor)
 
 	//menu
 	Menu* m = newMenu();
+	setMenuHeader(m, "MAIN MENU");
 
-	addMenuItem(m, "Install", NULL);
-	addMenuItem(m, "Titles", NULL);
-	addMenuItem(m, "Restore", NULL);
-	addMenuItem(m, "Test", NULL);
-	addMenuItem(m, "Shut Down", NULL);
+	addMenuItem(m, "Install", NULL, 0);
+	addMenuItem(m, "Titles", NULL, 0);
+	addMenuItem(m, "Restore", NULL, 0);
+	addMenuItem(m, "Test", NULL, 0);
+	addMenuItem(m, "Shut Down", NULL, 0);
 
 	m->cursor = cursor;
 
@@ -81,14 +82,14 @@ int main(int argc, char **argv)
 	//DSi check
 	if (!isDSiMode())
 	{
-		messageBox("Error: This app is only for the DSi.\n");
+		messageBox("\x1B[31mError:\x1B[33m This app is only for DSi.\x1B[47m");
 		return 0;
 	}
 
 	//setup sd card access
 	if (!fatInitDefault())
 	{
-		messageBox("fatInitDefault()...Failed\n");
+		messageBox("fatInitDefault()...\x1B[31mFailed\n\x1B[47m");
 		return 0;
 	}
 

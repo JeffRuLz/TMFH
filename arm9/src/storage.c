@@ -36,6 +36,8 @@ void printProgressBar(float percent)
 	{
 		consoleSelect(&topScreen);
 
+		iprintf("\x1B[42m");	//green
+
 		//Print frame
 		if (lastBars <= 0)
 		{
@@ -45,12 +47,14 @@ void printProgressBar(float percent)
 
 		//Print bars
 		if (bars > 0)
-		{
+		{			
 			for (int i = 0; i < bars; i++)
-				iprintf("\x1b[23;%dH|", 1 + i);
+				iprintf("\x1b[23;%dH|", 1 + i);			
 		}
 
 		lastBars = bars;
+
+		iprintf("\x1B[47m");	//white
 	}	
 }
 
@@ -74,52 +78,75 @@ bool fileExists(char const* path)
 	return true;
 }
 
-bool copyFile(char const* in, char const* out)
+int copyFile(char const* src, char const* dst)
 {
-	if (!in || !out) return false;
+	if (!src) return 1;
 
-	FILE* fin = fopen(in, "rb");
-	FILE* fout = fopen(out, "wb");
+	unsigned long long size = getFileSizePath(src);
+	return copyFilePart(src, 0, size, dst);
+}
 
-	if (!fin || !fout)
+int copyFilePart(char const* src, u32 offset, u32 size, char const* dst)
+{
+	if (!src) return 1;
+	if (!dst) return 2;
+
+	FILE* fin = fopen(src, "rb");
+
+	if (!fin)
 	{
 		fclose(fin);
-		fclose(fout);
-		return false;
+		return 3;
 	}
 	else
 	{
-		consoleSelect(&topScreen);
+		FILE* fout = fopen(dst, "wb");
 
-		int bytesRead;
-		int totalBytesRead = 0;
-		int fileSize = getFileSize(fin);
-
-		#define BUFF_SIZE 128 //Arbitrary. A value too large freezes the ds.
-		char* buffer = (char*)malloc(BUFF_SIZE);
-
-		while (1)
+		if (!fout)
 		{
-			bytesRead = fread(buffer, 1, BUFF_SIZE, fin);
-			fwrite(buffer, bytesRead, 1, fout);
+			fclose(fin);
+			fclose(fout);
+			return 4;
+		}
+		else
+		{
+			fseek(fin, offset, SEEK_SET);
 
-			totalBytesRead += bytesRead;
-			printProgressBar( ((float)totalBytesRead / (float)fileSize) );
+			consoleSelect(&topScreen);
 
-			if (bytesRead != BUFF_SIZE)
-				break;
+			int bytesRead;
+			unsigned int totalBytesRead = 0;
+
+			#define BUFF_SIZE 128 //Arbitrary. A value too large freezes the ds.
+			char* buffer = (char*)malloc(BUFF_SIZE);
+
+			while (1)
+			{
+				unsigned int toRead = BUFF_SIZE;
+				if (size - totalBytesRead < BUFF_SIZE)
+					toRead = size - totalBytesRead;
+
+				bytesRead = fread(buffer, 1, toRead, fin);
+				fwrite(buffer, bytesRead, 1, fout);
+
+				totalBytesRead += bytesRead;
+				printProgressBar( ((float)totalBytesRead / (float)size) );
+
+				if (bytesRead != BUFF_SIZE)
+					break;
+			}
+
+			clearProgressBar();
+			consoleSelect(&bottomScreen);
+
+			free(buffer);
 		}
 
-		clearProgressBar();
-		consoleSelect(&bottomScreen);
-
-		free(buffer);
+		fclose(fout);
 	}
 
 	fclose(fin);
-	fclose(fout);
-
-	return true;
+	return 0;	
 }
 
 unsigned long long getFileSize(FILE* f)
@@ -224,14 +251,42 @@ bool copyDir(char const* src, char const* dst)
 
 //				iprintf("%s\n%s\n\n", fsrc, fdst);
 				iprintf("%s...", fdst);
-				if(!copyFile(fsrc, fdst))
+
+				int ret = copyFile(fsrc, fdst);
+				
+				if(ret != 0)
 				{
+					iprintf("\x1B[31m");	//red
 					iprintf("Fail\n");
+					iprintf("\x1B[33m");	//yellow
+
+					switch (ret)
+					{
+						case 1:
+							iprintf("Empty input path.\n");
+							break;
+
+						case 2:
+							iprintf("Empty output path.\n");
+							break;
+
+						case 3:
+							iprintf("Error opening input file.\n");
+							break;
+
+						case 4:
+							iprintf("Error opening output file.\n");
+							break;
+					}
+
+					iprintf("\x1B[47m");	//white
 					result = false;
 				}
 				else
 				{
+					iprintf("\x1B[42m");	//green
 					iprintf("Done\n");
+					iprintf("\x1B[47m");	//white
 				}
 
 				free(fdst);
@@ -288,12 +343,16 @@ bool deleteDir(char const* path)
 				iprintf("%s...", fpath);
 				if (remove(fpath) != 0)
 				{
+					iprintf("\x1B[31m");
 					iprintf("Fail\n");
+					iprintf("\x1B[47m");
 					result = false;
 				}
 				else
 				{
+					iprintf("\x1B[42m");
 					iprintf("Done\n");
+					iprintf("\x1B[47m");
 				}
 			}
 		}
@@ -304,12 +363,16 @@ bool deleteDir(char const* path)
 	iprintf("%s...", path);
 	if (remove(path) != 0)
 	{
+		iprintf("\x1B[31m");
 		iprintf("Fail\n");
+		iprintf("\x1B[47m");
 		result = false;
 	}
 	else
 	{
+		iprintf("\x1B[42m");
 		iprintf("Done\n");
+		iprintf("\x1B[47m");
 	}
 
 	return result;
@@ -333,14 +396,14 @@ unsigned long long getDirSize(const char* path)
 			if (ent->d_type == DT_DIR)
 			{
 				char fullpath[512];
-				sprintf(fullpath, "%s%s/", path, ent->d_name);
+				sprintf(fullpath, "%s/%s", path, ent->d_name);
 
 				size += getDirSize(fullpath);
 			}
 			else
 			{				
-				char fullpath[256];
-				sprintf(fullpath, "%s%s", path, ent->d_name);				
+				char fullpath[260];
+				sprintf(fullpath, "%s/%s", path, ent->d_name);				
 
 				size += getFileSizePath(fullpath);
 			}
@@ -432,32 +495,36 @@ unsigned long long getSDCardFree()
 }
 
 //internal storage
-int getDsiSize()
+unsigned long long getDsiSize()
 {
 	//The DSi has 256MB of internal storage. Some is unavailable and used by other things.
 	//Find a better way to do this
 	return 240 * 1024 * 1024;
 }
 
-int getDsiFree()
+unsigned long long getDsiFree()
 {
 	//Get free space by subtracting file sizes in emulated nand folders
 	//Find a better way to do this
-	int size = getDsiSize();
+	long long size = getDsiSize();
 
-	size -= getDirSize("/sys/");
-	size -= getDirSize("/title/");
-	size -= getDirSize("/ticket/");
-	size -= getDirSize("/shared1/");
-	size -= getDirSize("/shared2/");
-	size -= getDirSize("/import/");
-	size -= getDirSize("/tmp/");
-	size -= getDirSize("/progress/");
+	size -= getDirSize("/sys");
+	size -= getDirSize("/title/0003000f");
+	size -= getDirSize("/title/00030004");
+	size -= getDirSize("/title/00030005");
+	size -= getDirSize("/title/00030017");
+	size -= getDirSize("/ticket");
+	size -= getDirSize("/shared1");
+	size -= getDirSize("/shared2");
+	size -= getDirSize("/import");
+	size -= getDirSize("/tmp");
+	size -= getDirSize("/progress");
 
-	size -= getDirSize("/photo/");
-	size -= getDirSize("/private/");
+	size -= getDirSize("/photo");
+	size -= getDirSize("/private");
 	
-	size += getDirSize("/title/00030015/");
-	
-	return size;
+	if (size < 0)
+		return 0;
+
+	return (unsigned long long)size;
 }

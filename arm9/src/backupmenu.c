@@ -18,13 +18,16 @@ static bool delete(Menu* m);
 
 void backupMenu()
 {
+	clearScreen(&topScreen);
+
 	Menu* m = newMenu();
+	setMenuHeader(m, "BACKUP MENU");
 	generateList(m);
 
 	//no files found
 	if (m->itemCount <= 0)
 	{
-		messageBox("No backups found.\n");
+		messageBox("\x1B[33mNo backups found.\n\x1B[47m");
 	}
 	else
 	{
@@ -77,9 +80,9 @@ static int subMenu()
 
 	Menu* m = newMenu();
 
-	addMenuItem(m, "Restore", NULL);
-	addMenuItem(m, "Delete", NULL);
-	addMenuItem(m, "Back - [B]", NULL);
+	addMenuItem(m, "Restore", NULL, 0);
+	addMenuItem(m, "Delete", NULL, 0);
+	addMenuItem(m, "Back - [B]", NULL, 0);
 
 	printMenu(m);
 
@@ -145,7 +148,7 @@ static void generateList(Menu* m)
 						char* path = (char*)malloc(strlen(BACKUP_PATH) + strlen(ent->d_name) + 8);
 						sprintf(path, "%s/%s", BACKUP_PATH, ent->d_name);
 
-						addMenuItem(m, ent->d_name, path);
+						addMenuItem(m, ent->d_name, path, 0);
 
 						free(path);
 					}					
@@ -166,7 +169,7 @@ static void generateList(Menu* m)
 
 static void restore(Menu* m)
 {
-	char* fpath = m->items[m->cursor];
+	char* fpath = m->items[m->cursor].value;
 
 	bool choice = NO;
 	{
@@ -183,7 +186,7 @@ static void restore(Menu* m)
 	{
 		if (!fpath)
 		{
-			messageBox("Failed to restore backup.\n");
+			messageBox("\x1B[31mFailed to restore backup.\n\x1B[47m");
 		}
 		else
 		{
@@ -191,11 +194,11 @@ static void restore(Menu* m)
 
 			if (!copyDir(fpath, "/title"))
 			{
-				messagePrint("\nFailed to restore backup.\n");
+				messagePrint("\x1B[31m\nFailed to restore backup.\n\x1B[47m");
 			}
 			else
 			{
-				messagePrint("\nBackup restored.\n");
+				messagePrint("\x1B[42m\nBackup restored.\n\x1B[47m");
 			}
 		}
 	}
@@ -205,7 +208,7 @@ static bool delete(Menu* m)
 {
 	if (!m) return false;
 
-	char* fpath = m->items[m->cursor];
+	char* fpath = m->items[m->cursor].value;
 
 	bool result = false;
 	bool choice = NO;
@@ -223,13 +226,13 @@ static bool delete(Menu* m)
 	{
 		if (!fpath)
 		{
-			messageBox("Failed to delete backup.\n");
+			messageBox("\x1B[31mFailed to delete backup.\n\x1B[47m");
 		}
 		else
 		{
 			if (!dirExists(fpath))
 			{
-				messageBox("Failed to delete backup.\n");
+				messageBox("\x1B[31mFailed to delete backup.\n\x1B[47m");
 			}
 			else
 			{
@@ -238,11 +241,11 @@ static bool delete(Menu* m)
 				if (deleteDir(fpath))
 				{
 					result = true;
-					messagePrint("\nBackup deleted.\n");
+					messagePrint("\x1B[42m\nBackup deleted.\n\x1B[47m");
 				}
 				else
 				{
-					messagePrint("\nError deleting backup.\n");
+					messagePrint("\n\x1B[31mError deleting backup.\n\x1B[47m");
 				}
 			}
 		}

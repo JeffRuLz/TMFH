@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 #define BACKUP_PATH "/titlebackup"
-#define ROM_PATH "/dsi"
 #define BYTES_PER_BLOCK (1024*128)
 
 //printing
@@ -17,7 +16,8 @@ void clearProgressBar();
 
 //Files
 bool fileExists(char const* path);
-bool copyFile(char const* src, char const* dst);
+int copyFile(char const* src, char const* dst);
+int copyFilePart(char const* src, u32 offset, u32 size, char const* dst);
 unsigned long long getFileSize(FILE* f);
 unsigned long long getFileSizePath(char const* path);
 bool padFile(char const* path, int size);
@@ -40,8 +40,8 @@ unsigned long long getSDCardFree();
 #define getSDCardUsedSpace() (getSDCardSize() - getSDCardFree())
 
 //internal storage
-int getDsiSize();
-int getDsiFree();
+unsigned long long getDsiSize();
+unsigned long long getDsiFree();
 #define getDsiUsed() (getDSIStorageSize() - getDSIStorageFree())
 
 #endif
