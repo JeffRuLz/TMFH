@@ -3,7 +3,7 @@
 #include "message.h"
 #include <time.h>
 
-#define VERSION "0.6.8"
+#define VERSION "0.6.8.1"
 
 enum {
 	MAIN_MENU_INSTALL,

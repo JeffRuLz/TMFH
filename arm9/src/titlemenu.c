@@ -302,9 +302,9 @@ static void backup(Menu* m)
 			clearScreen(&bottomScreen);
 
 			if (!copyDir(srcpath, dstpath))
-				messagePrint("\nBackup error.");
+				messagePrint("\x1B[31m\nBackup error.\x1B[47m");
 			else
-				messagePrint("\nBackup finished.");
+				messagePrint("\x1B[42m\nBackup finished.\x1B[47m");
 
 			free(dstpath);
 		}

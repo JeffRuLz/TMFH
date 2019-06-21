@@ -5,6 +5,7 @@
 #include "maketmd.h"
 #include "rom.h"
 #include "storage.h"
+#include <errno.h>
 #include <sys/stat.h>
 
 static bool _titleIsUsed(tDSiHeader* h)
@@ -437,6 +438,8 @@ bool install(char* fpath, bool systemTitle)
 						iprintf("Failed\n");
 						iprintf("\x1B[33m");	//yellow
 
+						iprintf("%s\n", strerror(errno));
+/*
 						switch (result)
 						{
 							case 1:
@@ -455,7 +458,7 @@ bool install(char* fpath, bool systemTitle)
 								iprintf("Error opening output file.\n");
 								break;
 						}
-
+*/
 						iprintf("\x1B[47m");	//white
 
 						goto error;

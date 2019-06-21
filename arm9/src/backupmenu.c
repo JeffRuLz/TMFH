@@ -214,7 +214,7 @@ static bool delete(Menu* m)
 	bool choice = NO;
 	{
 		char str[] = "Are you sure you want to delete\n";
-		char* msg = (char*)malloc(strlen(str) + strlen(fpath) + 1);
+		char* msg = (char*)malloc(strlen(str) + strlen(fpath) + 4);
 		sprintf(msg, "%s\n%s", str, fpath);
 
 		choice = choiceBox(msg);

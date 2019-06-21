@@ -1,6 +1,7 @@
 #include "storage.h"
 #include "main.h"
 #include "message.h"
+#include <errno.h>
 #include <dirent.h>
 
 #define TITLE_LIMIT 39
@@ -100,6 +101,9 @@ int copyFilePart(char const* src, u32 offset, u32 size, char const* dst)
 	}
 	else
 	{
+		if (fileExists(dst))
+			remove(dst);
+
 		FILE* fout = fopen(dst, "wb");
 
 		if (!fout)
@@ -115,7 +119,7 @@ int copyFilePart(char const* src, u32 offset, u32 size, char const* dst)
 			consoleSelect(&topScreen);
 
 			int bytesRead;
-			unsigned int totalBytesRead = 0;
+			unsigned long long totalBytesRead = 0;
 
 			#define BUFF_SIZE 128 //Arbitrary. A value too large freezes the ds.
 			char* buffer = (char*)malloc(BUFF_SIZE);
@@ -228,10 +232,10 @@ bool copyDir(char const* src, char const* dst)
 
 			if (ent->d_type == DT_DIR)
 			{
-				char* dsrc = (char*)malloc(strlen(src) + strlen(ent->d_name) + 1);
+				char* dsrc = (char*)malloc(strlen(src) + strlen(ent->d_name) + 4);
 				sprintf(dsrc, "%s/%s", src, ent->d_name);
 
-				char* ddst = (char*)malloc(strlen(dst) + strlen(ent->d_name) + 1);
+				char* ddst = (char*)malloc(strlen(dst) + strlen(ent->d_name) + 4);
 				sprintf(ddst, "%s/%s", dst, ent->d_name);
 
 				mkdir(ddst, 0777);
@@ -243,14 +247,14 @@ bool copyDir(char const* src, char const* dst)
 			}
 			else
 			{
-				char* fsrc = (char*)malloc(strlen(src) + strlen(ent->d_name) + 1);
+				char* fsrc = (char*)malloc(strlen(src) + strlen(ent->d_name) + 4);
 				sprintf(fsrc, "%s/%s", src, ent->d_name);
 
-				char* fdst = (char*)malloc(strlen(dst) + strlen(ent->d_name) + 1);
+				char* fdst = (char*)malloc(strlen(dst) + strlen(ent->d_name) + 4);
 				sprintf(fdst, "%s/%s", dst, ent->d_name);
 
 //				iprintf("%s\n%s\n\n", fsrc, fdst);
-				iprintf("%s...", fdst);
+				iprintf("%s -> \n%s...", fsrc, fdst);
 
 				int ret = copyFile(fsrc, fdst);
 				
@@ -260,6 +264,8 @@ bool copyDir(char const* src, char const* dst)
 					iprintf("Fail\n");
 					iprintf("\x1B[33m");	//yellow
 
+					iprintf("%s\n", strerror(errno));
+/*
 					switch (ret)
 					{
 						case 1:
@@ -278,7 +284,7 @@ bool copyDir(char const* src, char const* dst)
 							iprintf("Error opening output file.\n");
 							break;
 					}
-
+*/
 					iprintf("\x1B[47m");	//white
 					result = false;
 				}
