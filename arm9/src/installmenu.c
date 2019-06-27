@@ -148,7 +148,12 @@ static void generateList(Menu* m)
 	bool done = false;
 
 	struct dirent* ent;
-	DIR* dir = opendir(currentDir);	
+	DIR* dir = NULL;
+
+	if (currentDir[0] == '\0')
+		dir = opendir("/");
+	else
+		dir = opendir(currentDir);	
 
 	if (dir)
 	{

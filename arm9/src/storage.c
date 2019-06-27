@@ -504,33 +504,29 @@ unsigned long long getSDCardFree()
 unsigned long long getDsiSize()
 {
 	//The DSi has 256MB of internal storage. Some is unavailable and used by other things.
-	//Find a better way to do this
-	return 240 * 1024 * 1024;
+	//An empty DSi reads 1024 open blocks
+	return 1024 * BYTES_PER_BLOCK;
 }
 
 unsigned long long getDsiFree()
 {
 	//Get free space by subtracting file sizes in emulated nand folders
-	//Find a better way to do this
-	long long size = getDsiSize();
+	unsigned long long size = getDsiSize();
+	unsigned long long appSize = getDirSize("/title/00030004");
 
-	size -= getDirSize("/sys");
-	size -= getDirSize("/title/0003000f");
-	size -= getDirSize("/title/00030004");
-	size -= getDirSize("/title/00030005");
-	size -= getDirSize("/title/00030017");
-	size -= getDirSize("/ticket");
-	size -= getDirSize("/shared1");
-	size -= getDirSize("/shared2");
-	size -= getDirSize("/import");
-	size -= getDirSize("/tmp");
-	size -= getDirSize("/progress");
+	//round up to a full block
+	if (appSize % BYTES_PER_BLOCK != 0)
+		appSize = ((int)(appSize / BYTES_PER_BLOCK) * BYTES_PER_BLOCK) + BYTES_PER_BLOCK;
 
-	size -= getDirSize("/photo");
-	size -= getDirSize("/private");
-	
-	if (size < 0)
-		return 0;
+	//subtract, but don't go under 0
+	if (appSize > size)
+	{
+		size = 0;
+	}
+	else
+	{
+		size -= appSize;
+	}
 
-	return (unsigned long long)size;
+	return size;
 }
