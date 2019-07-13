@@ -3,7 +3,7 @@
 #include "message.h"
 #include <time.h>
 
-#define VERSION "0.7.0"
+#define VERSION "0.7.1"
 
 enum {
 	MAIN_MENU_INSTALL,
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 	//DSi check
 	if (!isDSiMode())
 	{
-		messageBox("\x1B[31mError:\x1B[33m This app is only for DSi.\x1B[47m");
+		messageBox("\x1B[31mError:\x1B[33m This app is only for DSi.");
 		return 0;
 	}
 

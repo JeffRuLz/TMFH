@@ -346,10 +346,7 @@ bool install(char* fpath, bool systemTitle)
 		iprintf("\n");
 
 		if (!_checkSdSpace(installSize))
-			goto error;
-
-		if (!_openMenuSlot())
-			goto error;
+			goto error;		
 
 		//system title patch
 		if (systemTitle)
@@ -387,6 +384,11 @@ bool install(char* fpath, bool systemTitle)
 
 		//create title directory /title/XXXXXXXX/XXXXXXXX
 		char dirPath[32];
+		mkdir("/title", 0777);
+		
+		sprintf(dirPath, "/title/%08x", (unsigned int)h->tid_high);
+		mkdir(dirPath, 0777);
+
 		sprintf(dirPath, "/title/%08x/%08x", (unsigned int)h->tid_high, (unsigned int)h->tid_low);	
 
 		//check if title is free
@@ -404,7 +406,10 @@ bool install(char* fpath, bool systemTitle)
 				deleteDir(dirPath);
 				iprintf("\n");
 			}
-		}		
+		}
+
+		if (!_openMenuSlot())
+			goto error;
 
 		mkdir(dirPath, 0777);
 
@@ -437,28 +442,8 @@ bool install(char* fpath, bool systemTitle)
 						iprintf("\x1B[31m");	//red
 						iprintf("Failed\n");
 						iprintf("\x1B[33m");	//yellow
-
+						iprintf("%s\n", appPath);
 						iprintf("%s\n", strerror(errno));
-/*
-						switch (result)
-						{
-							case 1:
-								iprintf("Empty input path.\n");
-								break;
-
-							case 2:
-								iprintf("Empty output path.\n");
-								break;
-
-							case 3:
-								iprintf("Error opening input file.\n");
-								break;
-
-							case 4:
-								iprintf("Error opening output file.\n");
-								break;
-						}
-*/
 						iprintf("\x1B[47m");	//white
 
 						goto error;
