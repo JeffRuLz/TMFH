@@ -10,8 +10,8 @@ void titleMenu();
 void backupMenu();
 void testMenu();
 
-PrintConsole topScreen;
-PrintConsole bottomScreen;
+extern PrintConsole topScreen;
+extern PrintConsole bottomScreen;
 
 void clearScreen(PrintConsole* screen);
 

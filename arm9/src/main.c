@@ -5,6 +5,9 @@
 
 #define VERSION "0.7.1"
 
+PrintConsole topScreen;
+PrintConsole bottomScreen;
+
 enum {
 	MAIN_MENU_INSTALL,
 	MAIN_MENU_TITLES,
