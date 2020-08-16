@@ -472,8 +472,8 @@ int getMenuSlotsFree()
 //SD card
 bool sdIsInserted()
 {
-	//Find a better way to do this.
-	return true;
+	if (access("sd:/", F_OK) == 0) 
+		return true;
 }
 
 unsigned long long getSDCardSize()
