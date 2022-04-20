@@ -1,4 +1,4 @@
-IMPORTAINT: [This project has been superseded by NTM](https://github.com/Epicpkmn11/NTM). Use that instead.
+## IMPORTAINT: [This project has been superseded by NTM](https://github.com/Epicpkmn11/NTM). Use that instead.
 
 
 ### Title Manager for HiyaCFW
